@@ -6,7 +6,7 @@ const webpack = {
     entry: './index.js',
     resolve: {
       alias: {
-        '@': path.join(projectRoot, 'src')
+        '@lexisCs': path.join(projectRoot, 'src')
       }
     }
   },

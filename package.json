@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Lexical services for client side scripts",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config.mjs",

@@ -12,13 +12,14 @@ export default class ResponseMessage extends Message {
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
     super(body)
-    this.role = Symbol.keyFor(Message.roles.RESPONSE)
+    this.role = Message.roles.RESPONSE
     this.requestID = request.ID // ID of the request to match request and response
     this.responseCode = responseCode
   }
 
   /**
    * A builder for a message with a SUCCESS response code.
+   *
    * @param request
    * @param {Object} body - A response message body
    * @return {ResponseMessage}
@@ -30,6 +31,7 @@ export default class ResponseMessage extends Message {
 
   /**
    * A builder for a message with an Error response code.
+   *
    * @param request
    * @param {Error} error - An error object
    * @return {ResponseMessage}
@@ -41,6 +43,7 @@ export default class ResponseMessage extends Message {
 
   /**
    * Checks if this message is a response (i.e. follows a response message format)
+   *
    * @param message
    */
   static isResponse (message) {

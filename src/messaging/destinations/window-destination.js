@@ -1,8 +1,8 @@
 import Destination from './destination.js'
 
 export default class WindowDestination extends Destination {
-  constructor ({ targetURL, targetIframeID } = {}) {
-    super()
+  constructor (name, { targetURL, targetIframeID } = {}) {
+    super(name)
 
     if (!targetURL) {
       throw new Error('Target URL is not provided')
