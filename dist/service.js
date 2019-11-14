@@ -91,37 +91,10 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./index.js");
+/******/ 	return __webpack_require__(__webpack_require__.s = "./src/cedict-service/service.js");
 /******/ })
 /************************************************************************/
 /******/ ({
-
-/***/ "./index.js":
-/*!******************!*\
-  !*** ./index.js ***!
-  \******************/
-/*! exports provided: MessagingService, WindowDestination, RequestMessage */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "MessagingService", function() { return _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"]; });
-
-/* harmony import */ var _lexisCs_messaging_destinations_window_destination_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-destination.js */ "./src/messaging/destinations/window-destination.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "WindowDestination", function() { return _lexisCs_messaging_destinations_window_destination_js__WEBPACK_IMPORTED_MODULE_1__["default"]; });
-
-/* harmony import */ var _lexisCs_messaging_messages_request_message_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/messages/request-message.js */ "./src/messaging/messages/request-message.js");
-/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "RequestMessage", function() { return _lexisCs_messaging_messages_request_message_js__WEBPACK_IMPORTED_MODULE_2__["default"]; });
-
-
-
-
-
-
-
-
-/***/ }),
 
 /***/ "./node_modules/uuid/lib/bytesToUuid.js":
 /*!**********************************************!*\
@@ -243,6 +216,35 @@ module.exports = v4;
 
 /***/ }),
 
+/***/ "./src/cedict-service/service.js":
+/*!***************************************!*\
+  !*** ./src/cedict-service/service.js ***!
+  \***************************************/
+/*! no exports provided */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
+/* harmony import */ var _lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/messages/response-message.js */ "./src/messaging/messages/response-message.js");
+/* harmony import */ var _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-iframe-destination.js */ "./src/messaging/destinations/window-iframe-destination.js");
+
+
+
+
+const messageHandler = (request, responseFn) => {
+  const body = { text: 'Response message from CEDICT service' }
+  responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Success(request, body))
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT))
+  service.registerReceiverCallback(_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT.name, messageHandler)
+})
+
+
+/***/ }),
+
 /***/ "./src/messaging/destinations/destination.js":
 /*!***************************************************!*\
   !*** ./src/messaging/destinations/destination.js ***!
@@ -253,34 +255,78 @@ module.exports = v4;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Destination; });
+/**
+ * @module Destination
+ */
+
+/** Destination represents a place where messages are sent to and are received from (e.g. a windows) */
 class Destination {
-  constructor (name) {
+  /**
+   * Creates an instance of a Destination object. Descendants may take configuration parameters through
+   * a second argument that they can define.
+   *
+   * @param {string} name - A name of a particular destination.
+   */
+  constructor ({ name }) {
     if (!name) {
       throw new Error('Destination name is missing')
     }
+
+    /**
+     * A name of a destination. Used to refer to it within a messaging service.
+     *
+     * @type {string}
+     * @public
+     */
     this.name = name
+
+    /**
+     * A function that will be called when a response from destination is received.
+     *
+     * @type {Function}
+     * @private
+     */
+    this._responseCallback = null
+  }
+
+  /**
+   * Registers a function to call when a response from destination is received.
+   *
+   * @param {Function} callbackFn - A function to be called when response is received.
+   */
+  registerResponseCallback (callbackFn) {
+    this._responseCallback = callbackFn
   }
 }
 
 
 /***/ }),
 
-/***/ "./src/messaging/destinations/window-destination.js":
-/*!**********************************************************!*\
-  !*** ./src/messaging/destinations/window-destination.js ***!
-  \**********************************************************/
+/***/ "./src/messaging/destinations/window-iframe-destination.js":
+/*!*****************************************************************!*\
+  !*** ./src/messaging/destinations/window-iframe-destination.js ***!
+  \*****************************************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return WindowDestination; });
-/* harmony import */ var _destination_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./destination.js */ "./src/messaging/destinations/destination.js");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return WindowIframeDestination; });
+/* harmony import */ var _lexisCs_messaging_destinations_destination_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/destinations/destination.js */ "./src/messaging/destinations/destination.js");
+/**
+ * @module WindowIframeDestination
+ */
 
 
-class WindowDestination extends _destination_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
-  constructor (name, { targetURL, targetIframeID } = {}) {
-    super(name)
+/** WindowIframeDestination represents a content window within an iframe */
+class WindowIframeDestination extends _lexisCs_messaging_destinations_destination_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  /**
+   * @param {string} name - A name of a destination (for addressing a destination in a messaging service).
+   * @param {string} targetURL - A URL of a document within an iframe where messages will be sent.
+   * @param {string} targetIframeID - An ID of an iframe element (without `#`).
+   */
+  constructor ({ name, targetURL, targetIframeID } = {}) {
+    super({ name })
 
     if (!targetURL) {
       throw new Error('Target URL is not provided')
@@ -290,41 +336,105 @@ class WindowDestination extends _destination_js__WEBPACK_IMPORTED_MODULE_0__["de
       throw new Error('Target iframe ID is not provided')
     }
 
+    /**
+     * A URL of a document within an iframe where messages will be sent.
+     *
+     * @type {string}
+     * @private
+     */
     this._targetURL = targetURL
+
+    /**
+     * An ID of an iframe element (without `#`).
+     *
+     * @type {string}
+     * @private
+     */
     this._targetIframeID = targetIframeID
-    this._messageCallback = null
-    window.addEventListener('message', this.receiveMessage, false)
+
+    window.addEventListener('message', this._responseHandler.bind(this), false)
   }
 
-  registerMessageCallback (callbackFn) {
-    this._messageCallback = callbackFn
+  /**
+   * Registers a function to be called an a receiving side when a message from origin to destination will arrive.
+   * This callback will receive the following arguments: the request object (of `RequestMessage` type)
+   * and the function that can be used to send a response.
+   *
+   * @param {Function} callbackFn - A function that will be called when a request will arrive to its destination.
+   */
+  registerReceiverCallback (callbackFn) {
+    window.addEventListener('message', this._requestHandler.bind(this, callbackFn), false)
   }
 
-  sendMessage (message) {
+  /**
+   * A function that will be called to send a request from origin to destination.
+   *
+   * @param {RequestMessage} requestMessage - A request message object.
+   */
+  sendRequest (requestMessage) {
     const iframe = document.querySelector(`#${this._targetIframeID}`)
     if (!iframe) {
       throw new Error(`An #${this._targetIframeID} iframe does not exist in the document`)
     }
     const iframeWindow = iframe.contentWindow
-    iframeWindow.postMessage(message, this._targetURL)
+    iframeWindow.postMessage(requestMessage, this._targetURL)
   }
 
-  receiveMessage (event) {
-    console.info('Receive message has been called')
+  /**
+   * A function that is used to send a response from destination to origin.
+   *
+   * @param {ResponseMessage} responseMessage - A response message object.
+   */
+  sendResponse (responseMessage) {
+    window.parent.postMessage(responseMessage, responseMessage.requestHeader.origin)
+  }
+
+  /**
+   * An internal handler that is called when request arrives to its destination.
+   *
+   * @param {Function} callbackFn - A client's callback function that will be called and
+   *                                passed a request (a `RequestMessage` object).
+   * @param {Event} event - A browser's event object.
+   * @private
+   */
+  _requestHandler (callbackFn, event) {
+    // `data` prop of an event contains a request message object
+    let request = event.data // eslint-disable-line prefer-const
+    request.header.origin = event.origin
+    callbackFn(request, this.sendResponse.bind(this))
+  }
+
+  /**
+   * An internal handler that is called when response arrives from destination to origin.
+   *
+   * @param {Event} event - A browser's event object.
+   * @private
+   */
+  _responseHandler (event) {
     if (event.origin !== this._targetURL) {
       // Message came from a destination we're not listening for
       return
     }
-    console.info('A CEDICT response has been received', event)
 
-    let message = event.data // eslint-disable-line prefer-const
-    message.commType = 'postMessage'
-    message.originURL = event.origin
-
-    if (this._messageCallback) {
-      this._messageCallback(message)
+    // `data` prop of an event contains a response message object
+    const responseMessage = event.data
+    if (this._responseCallback) {
+      this._responseCallback(responseMessage)
     }
   }
+}
+/*
+Below are some preset configurations for the most commonly used cases
+ */
+WindowIframeDestination.config = {}
+
+/*
+This configuration is used to access CEDICT data.
+ */
+WindowIframeDestination.config.CEDICT = {
+  name: 'cedict',
+  targetURL: 'http://data-dev.alpheios.net',
+  targetIframeID: 'alpheios-lexis-cs'
 }
 
 
@@ -342,54 +452,60 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Message; });
 /* harmony import */ var uuid_v4__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! uuid/v4 */ "./node_modules/uuid/v4.js");
 /* harmony import */ var uuid_v4__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(uuid_v4__WEBPACK_IMPORTED_MODULE_0__);
+/**
+ * @module Message
+ */
 
 
+/** A base class for all types of messages */
 class Message {
+  /**
+   * @param {object} body - A plain JS object (with no methods) representing a body of the message.
+   */
   constructor (body) {
+    /**
+     * A message's role (@see {@link Message.roles}). Will be defined in descendants.
+     *
+     * @type {string | undefined}
+     */
     this.role = undefined
+
+    /**
+     * A type of the message. Used to distinguish one kind of message from the other (@see {@link Message.types}).
+     *
+     * @type {string | undefined}
+     */
     this.type = Message.types.GENERIC
+
+    /**
+     * A unique identifier of the message.
+     *
+     * @type {string}
+     */
     this.ID = uuid_v4__WEBPACK_IMPORTED_MODULE_0___default()()
-    this.requestID = null
+
+    /**
+     * An object with no methods representing a message body.
+     *
+     * @type {object}
+     */
     this.body = body
   }
 }
 
 /**
- * Specifies a message type
- */
-Message.types = {
-  GENERIC: 'Generic'
-}
-
-/**
- * Specifies whether a message is a request or response
+ * Specifies whether a message is request or response.
  */
 Message.roles = {
   REQUEST: 'Request',
   RESPONSE: 'Response'
 }
 
-
-/***/ }),
-
-/***/ "./src/messaging/messages/request-message.js":
-/*!***************************************************!*\
-  !*** ./src/messaging/messages/request-message.js ***!
-  \***************************************************/
-/*! exports provided: default */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return RequestMessage; });
-/* harmony import */ var _message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./message.js */ "./src/messaging/messages/message.js");
-
-
-class RequestMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
-  constructor (body) {
-    super(body)
-    this.role = _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.REQUEST
-  }
+/**
+ * Specifies a message type: what kind of message it is and what purpose it serves.
+ */
+Message.types = {
+  GENERIC: 'Generic'
 }
 
 
@@ -406,31 +522,32 @@ class RequestMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"]
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return ResponseMessage; });
 /* harmony import */ var _message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./message.js */ "./src/messaging/messages/message.js");
-
-
 /**
- * A generic response to a request message
+ * @module ResponseMessage
  */
+
+
+/** A response message that is sent as an answer to the request message. */
 class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
   /**
-   * @param {RequestMessage} request - A request that resulted in this response
-   * @param {Object} body - A response message body
-   * @param {symbol} responseCode - A status code for a request that initiated this response
-   * (i.e. Success, Failure, etc.)
+   * @param {RequestMessage} request - A request that initiated this response. Used to copy routing information mostly.
+   * @param {object} body - A body of the response, a plain JS object with no methods.
+   * @param {string} responseCode - A code to indicate results of the request handling: Success, Failure, etc.
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
     super(body)
     this.role = _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE
-    this.requestID = request.ID // ID of the request to match request and response
+    this.requestHeader = request.header || {}
+    this.requestHeader.ID = request.ID // ID of the request to match request and response
     this.responseCode = responseCode
   }
 
   /**
-   * A builder for a message with a SUCCESS response code.
+   * A builder for a response message with a SUCCESS response code.
    *
-   * @param request
-   * @param {Object} body - A response message body
-   * @return {ResponseMessage}
+   * @param {RequestMessage} request - An original request.
+   * @param {object} body - A body of response message.
+   * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
    * @constructor
    */
   static Success (request, body) {
@@ -438,11 +555,11 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
   }
 
   /**
-   * A builder for a message with an Error response code.
+   * A builder for a message with an ERROR response code. Error information will be sent within the message body.
    *
-   * @param request
-   * @param {Error} error - An error object
-   * @return {ResponseMessage}
+   * @param {RequestMessage} request - An original request.
+   * @param {Error} error - An error object containing error information.
+   * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
    * @constructor
    */
   static Error (request, error) {
@@ -450,28 +567,31 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
   }
 
   /**
-   * Checks if this message is a response (i.e. follows a response message format)
+   * Checks if this message is a response (i.e. if it follows a response message format and conventions).
    *
-   * @param message
+   * @param {RequestMessage | ResponseMessage} message - A request or response message to be tested.
+   * @returns {boolean} - True if the message is a response, false otherwise.
    */
   static isResponse (message) {
     return message.role &&
-    Symbol.for(message.role) === _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE && message.requestID
+      message.role === _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE &&
+      message.requestHeader &&
+      message.requestHeader.ID
   }
 }
 
 /**
- * Specifies whether a request was processed successfully or not
+ * Specifies whether a request was processed successfully or not.
  */
 ResponseMessage.responseCodes = {
   // Request was processed successfully.
-  // In this case a message body may contain a response data object or be empty
+  // In this case a message body may contain a response data object or be empty.
   SUCCESS: 'Success',
 
-  // There is no information about what was the outcome of request
+  // There is no information about what was the outcome of request.
   UNDEFINED: 'Undefined',
 
-  // Request failed
+  // Request failed. A message body will have information about an error.
   ERROR: 'Error'
 }
 
@@ -490,97 +610,102 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return MessagingService; });
 /* harmony import */ var _messages_response_message__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./messages/response-message */ "./src/messaging/messages/response-message.js");
 /* harmony import */ var _stored_request__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./stored-request */ "./src/messaging/stored-request.js");
+/**
+ * @module MessagingService
+ */
 
 
 
+/** A messaging for sending and receiving messages to and from various destinations */
 class MessagingService {
-  constructor () {
+  constructor (destinations = []) {
     /**
-     * A map where outgoing messages will be stored.
+     * A map object where outgoing messages will be stored. The key is the message ID and the value is an object
+     * that stores details about the message being sent.
      *
      * @type {Map<string, StoredRequest>}
      */
     this._messages = new Map()
+
+    /**
+     * A map object where outgoing messages will be stored. The key is a destination name and the value is
+     * the Destination object.
+     *
+     * @type {Map<string, Destination>}
+     */
     this._destinations = new Map()
 
-    console.info('A messaging service has been created')
-  }
-
-  registerDestination (destination) {
-    this._destinations.set(destination.name, destination)
-    destination.registerMessageCallback(this.dispatchMessage.bind(this))
+    // If provided as a singular value convert destination into an array
+    if (!Array.isArray(destinations)) { destinations = [destinations] }
+    destinations.forEach(destination => this.registerDestination(destination))
   }
 
   /**
-   * A message dispatcher function
+   * Registers destination by adding it to the destinations map and setting a response callback.
    *
-   * @param message
+   * @param {Destination} destination - A destination object to register.
    */
-  dispatchMessage (message) {
-    if (!message.requestID) {
-      console.error('A message with an unknown request ID will be ignored:', message)
-      return
-    }
-
-    if (!this._messages.has(message.requestID)) {
-      console.error(`A message with a request ID ${message.requestID} is not registered in a request list`, message)
-      return
-    }
-
-    this.fulfillRequest(message)
+  registerDestination (destination) {
+    this._destinations.set(destination.name, destination)
+    destination.registerResponseCallback(this.dispatchMessage.bind(this))
   }
 
-/**
-   * Registers an outgoing request in a request map. Returns a promise that will be fulfilled when when
-   * a response will be received or will be rejected when a timeout will expire.
+  /**
+   * A function to handle incoming messages.
+   *
+   * @param {ResponseMessage} message - An incoming response message.
+   */
+  dispatchMessage (message) {
+    if (!_messages_response_message__WEBPACK_IMPORTED_MODULE_0__["default"].isResponse(message)) {
+      console.error('A message not following a response format will be ignored:', message)
+      return
+    }
+
+    if (!this._messages.has(message.requestHeader.ID)) {
+      console.error(`Ignoring a message with request ID ${message.requestHeader.ID} not registered in a request list`, message)
+      return
+    }
+    const requestInfo = this._messages.get(message.requestHeader.ID)
+    window.clearTimeout(requestInfo.timeoutID) // Clear a timeout
+    const responseCode = message.responseCode
+
+    if (responseCode === _messages_response_message__WEBPACK_IMPORTED_MODULE_0__["default"].responseCodes.ERROR) {
+      // There was an error returned. An error info is in the message body.
+      requestInfo.reject(message.body)
+    } else {
+      // Request was processed without errors
+      requestInfo.resolve(message)
+    }
+    this._messages.delete(message.requestHeader.ID) // Remove request info from the map
+  }
+
+  /**
+   * Registers an outgoing request within a request map. Returns a promise that will be fulfilled when
+   * a response will be received or rejected when a timeout will expire.
+   *
    * @param {RequestMessage} request - An outgoing request.
    * @param {number} timeout - A number of milliseconds we'll wait for response before rejecting a promise.
-   * @return {Promise} - An asynchronous result of an operation.
+   * @returns {Promise} - A promise that will be resolved with the message response or rejected with an error info.
    */
   registerRequest (request, timeout = 10000) {
     let storedRequest = new _stored_request__WEBPACK_IMPORTED_MODULE_1__["default"](request) // eslint-disable-line prefer-const
     this._messages.set(request.ID, storedRequest)
     storedRequest.timeoutID = window.setTimeout((requestID) => {
-      storedRequest.reject(new Error('Timeout has been expired'))
-      this._messages.delete(requestID) // Remove from map
+      storedRequest.reject(new Error(`Timeout has been expired for a message with request ID ${request.ID}`))
+      this._messages.delete(requestID) // Remove request record from the map
     }, timeout)
     return storedRequest.promise
   }
 
   /**
-   * Passes a response information to the request callback by resolving or rejecting a promise.
-   * If request has been completed successfully, promise is resolved with the response message object.
-   * If request failed, a responseCode is ERROR and a response body contains
-   * a TranferrableError JSON-like object. In this case an error instance will be created
-   * and a promise will be rejected with this error object.
+   * Sends a request message to a specific destination.
    *
-   * @param responseMessage
+   * @param {string} destName - A name of a destination where request will be sent to.
+   * @param {RequestMessage} request - A request message to be sent.
+   * @param {number} timeout - How many milliseconds to wait for a response.
+   * @returns {Promise<ResponseMessage> | Promise<Error> | Promise<object>} - A promise either resolved
+   *          with response message or rejected with the error info.
    */
-  fulfillRequest (responseMessage) {
-    if (this._messages.has(responseMessage.requestID)) {
-      const requestInfo = this._messages.get(responseMessage.requestID)
-      const responseCode = _messages_response_message__WEBPACK_IMPORTED_MODULE_0__["default"].responseCode(responseMessage)
-      window.clearTimeout(requestInfo.timeoutID) // Clear a timeout
-      if (responseCode === _messages_response_message__WEBPACK_IMPORTED_MODULE_0__["default"].responseCodes.ERROR) {
-        // There was an error
-        requestInfo.reject(responseMessage) // Resolve with a response message body
-      } else {
-        // Request was processed without errors
-        requestInfo.resolve(responseMessage)
-      }
-      this._messages.delete(responseMessage.requestID) // Remove request from a map
-    }
-  }
-
-  rejectRequest (requestID, error) {
-    if (requestID && this._messages.has(requestID)) {
-      let requestInfo = this._messages.get(requestID) // eslint-disable-line prefer-const
-      window.clearTimeout(requestInfo.timeoutID) // Clear a timeout
-      requestInfo.reject(error)
-      this._messages.delete(requestID) // Remove request from a map
-    }
-  }
-
   sendRequestTo (destName, request, timeout = 10000) {
     if (!destName) {
       throw new Error('Destination name is not provided')
@@ -591,22 +716,27 @@ class MessagingService {
     }
 
     const promise = this.registerRequest(request, timeout)
-    this._destinations.get(destName).sendMessage(request)
+    this._destinations.get(destName).sendRequest(request)
     return promise
   }
 
-  sendResponseTo (request, response) {
+  /**
+   * Sets a function to be called on a destination side every time a message from the origin arrives.
+   *
+   * @param {string} destName - A name of a destination to listen to messages from.
+   * @param {Function} callbackFn - A function to call when message is arrived. A message will be passed
+   *                                to this function as an argument.
+   */
+  registerReceiverCallback (destName, callbackFn) {
     if (!destName) {
-      throw new Error('Destination name is not provided')
+      throw new Error('No destination name provided')
     }
 
     if (!this._destinations.has(destName)) {
       throw new Error(`Unknown destination ${destName}`)
     }
 
-    const promise = this.registerRequest(request, timeout)
-    this._destinations.get(destName).sendMessage(request)
-    return promise
+    this._destinations.get(destName).registerReceiverCallback(callbackFn)
   }
 }
 
@@ -623,11 +753,28 @@ class MessagingService {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return StoredRequest; });
+/**
+ * @module MessagingService
+ */
+
+/** Stores information about request being sent via the messaging service */
 class StoredRequest {
   constructor () {
-    this.resolve = undefined
-    this.reject = undefined
-    // Promise sets reject and resolve
+    /**
+     * A function to resolve the request's promise.
+     *
+     * @type {Function}
+     */
+    this.resolve = null
+
+    /**
+     * A function to reject the request's promise.
+     *
+     * @type {Function}
+     */
+    this.reject = null
+
+    // A promise that will be resolved or rejected when the response will arrive or the timeout will expire
     this.promise = new Promise(this.executor.bind(this))
   }
 
@@ -642,4 +789,4 @@ class StoredRequest {
 
 /******/ });
 });
-//# sourceMappingURL=lexis-cs.js.map
+//# sourceMappingURL=service.js.map

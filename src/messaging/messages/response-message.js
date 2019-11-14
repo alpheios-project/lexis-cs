@@ -1,28 +1,29 @@
+/**
+ * @module ResponseMessage
+ */
 import Message from './message.js'
 
-/**
- * A generic response to a request message
- */
+/** A response message that is sent as an answer to the request message. */
 export default class ResponseMessage extends Message {
   /**
-   * @param {RequestMessage} request - A request that resulted in this response
-   * @param {Object} body - A response message body
-   * @param {symbol} responseCode - A status code for a request that initiated this response
-   * (i.e. Success, Failure, etc.)
+   * @param {RequestMessage} request - A request that initiated this response. Used to copy routing information mostly.
+   * @param {object} body - A body of the response, a plain JS object with no methods.
+   * @param {string} responseCode - A code to indicate results of the request handling: Success, Failure, etc.
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
     super(body)
     this.role = Message.roles.RESPONSE
-    this.requestID = request.ID // ID of the request to match request and response
+    this.requestHeader = request.header || {}
+    this.requestHeader.ID = request.ID // ID of the request to match request and response
     this.responseCode = responseCode
   }
 
   /**
-   * A builder for a message with a SUCCESS response code.
+   * A builder for a response message with a SUCCESS response code.
    *
-   * @param request
-   * @param {Object} body - A response message body
-   * @return {ResponseMessage}
+   * @param {RequestMessage} request - An original request.
+   * @param {object} body - A body of response message.
+   * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
    * @constructor
    */
   static Success (request, body) {
@@ -30,11 +31,11 @@ export default class ResponseMessage extends Message {
   }
 
   /**
-   * A builder for a message with an Error response code.
+   * A builder for a message with an ERROR response code. Error information will be sent within the message body.
    *
-   * @param request
-   * @param {Error} error - An error object
-   * @return {ResponseMessage}
+   * @param {RequestMessage} request - An original request.
+   * @param {Error} error - An error object containing error information.
+   * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
    * @constructor
    */
   static Error (request, error) {
@@ -42,27 +43,30 @@ export default class ResponseMessage extends Message {
   }
 
   /**
-   * Checks if this message is a response (i.e. follows a response message format)
+   * Checks if this message is a response (i.e. if it follows a response message format and conventions).
    *
-   * @param message
+   * @param {RequestMessage | ResponseMessage} message - A request or response message to be tested.
+   * @returns {boolean} - True if the message is a response, false otherwise.
    */
   static isResponse (message) {
     return message.role &&
-    Symbol.for(message.role) === Message.roles.RESPONSE && message.requestID
+      message.role === Message.roles.RESPONSE &&
+      message.requestHeader &&
+      message.requestHeader.ID
   }
 }
 
 /**
- * Specifies whether a request was processed successfully or not
+ * Specifies whether a request was processed successfully or not.
  */
 ResponseMessage.responseCodes = {
   // Request was processed successfully.
-  // In this case a message body may contain a response data object or be empty
+  // In this case a message body may contain a response data object or be empty.
   SUCCESS: 'Success',
 
-  // There is no information about what was the outcome of request
+  // There is no information about what was the outcome of request.
   UNDEFINED: 'Undefined',
 
-  // Request failed
+  // Request failed. A message body will have information about an error.
   ERROR: 'Error'
 }

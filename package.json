@@ -8,6 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config.mjs",
     "build-dev": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config.mjs",
+    "build-service-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config-service.mjs",
+    "build-service-dev": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config-service.mjs",
     "lint": "eslint --fix ./src/**/*.js",
     "lint-nofix": "eslint ./src/**/*.js"
   },
