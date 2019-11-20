@@ -216,79 +216,91 @@ module.exports = v4;
 
 /***/ }),
 
-/***/ "./src/cedict-service/data.js":
-/*!************************************!*\
-  !*** ./src/cedict-service/data.js ***!
-  \************************************/
+/***/ "./src/cedict-service/cedict-data.js":
+/*!*******************************************!*\
+  !*** ./src/cedict-service/cedict-data.js ***!
+  \*******************************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Data; });
-/* harmony import */ var _lexisCs_resources_cedict_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/resources/cedict.js */ "./src/resources/cedict.js");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return CedictData; });
+class CedictData {
+  constructor (schema) {
+    this._schema = schema
 
+    this.isReady = false
 
-class Data {
-  constructor () {
-    this.db = null
-    this.isOpened = false
-    this.openRequest = null
-    // Open a database connection
-    this.open()
-  }
-
-  getData (word) {
-
-  }
-
-  open () {
-    this.openRequest = window.indexedDB.open(_lexisCs_resources_cedict_js__WEBPACK_IMPORTED_MODULE_0__["default"].db.name, _lexisCs_resources_cedict_js__WEBPACK_IMPORTED_MODULE_0__["default"].db.version)
-    this.openRequest.onupgradeneeded = this.onUpgradeNeeded.bind(this)
-    this.openRequest.onsuccess = this.onSuccess.bind(this)
-    this.openRequest.onerror = this.onError.bind(this)
-  }
-
-  /**
-   * Called when a version of a DB newer than the one available is requested.
-   *
-   * @param {IDBVersionChangeEvent} event - An event object with the following props:
-   *                    {number} oldVersion - An old version of a database
-   *                    {number} newVersion - A new version of a database
-   *                    {IDBOpenDBRequest} target - A DB request object
-   */
-  onUpgradeNeeded (event) {
-    console.info('OnUpgradeNeeded was called', event)
-    // Data schema is outdated, need to update
-  }
-
-  onSuccess (event) {
-    // If a newer DB version is requested, an onUpgradeNeeded() will be called first,
-    // then control will go to onSuccess()
-    console.info('Database is OK', event)
-    this.db = event.target.result
-    this.isOpened = true
-    this.db.onversionchange = this.onVersionChange.bind(this)
-  }
-
-  onError (event) {
-    console.info('OnError was called', event)
-    // One type of errors can occur when IndexedDB version is higher than the one requested.
-    // This probably means that the script is outdated.
-    if (event.target.error.name === 'VersionError') {
-      // One type of errors can occur when IndexedDB version is higher than the one requested.
-      // This probably means that the script is outdated.
-      console.error(`${event.target.error.message}. Please refresh your page to load an updated version of the client service.`)
+    /**
+     * If CEDICT be stored in memory this object will hold all its data.
+     *
+     * @type {{entries: [], meta: {}}}
+     */
+    this.cedict = {
+      // A dictionary's metadata
+      meta: {},
+      // An array of dictionary records
+      entries: []
     }
   }
 
-  onVersionChange (event) {
-    console.info('OnVersionChange was called', event)
+  init () {
+    return this.updateFromServer()
+  }
+
+  getWords (words, characterForm) {
+    if (!words || !this._hasData) {
+      // No records can be found.
+      return []
+    }
+
+    // If a single word value is provided, convert it into an array.
+    if (!Array.isArray(words)) { words = [words] }
+
+    // Create an object with props for the words
+    let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
+
+    this.cedict.entries.forEach(entry => {
+      const hw = (characterForm === CedictData.characterForms.SIMPLIFIED) ? entry.simplifiedHeadword : entry.traditionalHeadword
+      words.forEach(word => {
+        if (hw === word) {
+          result[word].push(entry)
+        }
+      })
+    })
+    return result
+  }
+
+  get _hasData () {
+    return this.cedict.entries.length > 0
   }
 
   updateFromServer () {
-
+    const requests = this._schema.data.chunks.map(chunk => this.loadJson(`${this._schema.data.URI}/${chunk}`))
+    return Promise.all(requests).then(chunks => {
+      this.cedict.meta = chunks[0].meta
+      this.cedict.entries = chunks.map(piece => piece.entries).flat()
+      this.isReady = true
+    }).catch(error => console.error(error))
   }
+
+  /**
+   * Loads a single JSON file from a specified URL and decodes it.
+   *
+   * @param {string} url - A strings that specifies a URL of a JSON file
+   * @returns {Promise<object>|Promise<Error>} - A promise that is resolved with a JSON object or
+   *          rejected with the error.
+   */
+  loadJson (url) {
+    return fetch(url).then(response => response.json())
+  }
+}
+
+// TODO: Shall probably move this to data models
+CedictData.characterForms = {
+  SIMPLIFIED: 'simplified',
+  TRADITIONAL: 'traditional'
 }
 
 
@@ -306,7 +318,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
 /* harmony import */ var _lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/messages/response-message.js */ "./src/messaging/messages/response-message.js");
 /* harmony import */ var _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-iframe-destination.js */ "./src/messaging/destinations/window-iframe-destination.js");
-/* harmony import */ var _lexisCs_cedict_service_data_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @lexisCs/cedict-service/data.js */ "./src/cedict-service/data.js");
+/* harmony import */ var _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @lexisCs/cedict-service/cedict-data.js */ "./src/cedict-service/cedict-data.js");
+/* harmony import */ var _lexisCs_schemas_cedict_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @lexisCs/schemas/cedict.js */ "./src/schemas/cedict.js");
+
 
 
 
@@ -318,29 +332,23 @@ const STORE_NAME = 'CedictStore'
 const TRAD_IDX_NAME = 'traditionalHwIdx'
 const SIMPL_IDX_NAME = 'simplifiedHwIdx'
 
-const messageHandler = (request, responseFn) => {
-  const body = { text: 'Response message from CEDICT service' }
-  responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Success(request, body))
-}
+let cedictData
 
-const loadJson = (url) => {
-  return new Promise((resolve, reject) => {
-    const startTime = Date.now()
-    console.info(`Data loading is about to start for ${url}`)
-    fetch(url)
-      .then(response => {
-        console.info(`Headers has been received, duration is ${Date.now() - startTime}ms`)
-        console.info(response)
-        return response.json()
-      })
-      .then(JsonData => {
-        console.info(`Body has been received, duration is ${Date.now() - startTime}ms`)
-        resolve(JsonData)
-      })
-      .catch(error => {
-        reject(error)
-      })
-  })
+const messageHandler = (request, responseFn) => {
+  console.info('Request received is', request)
+  let response
+  if (!cedictData.isReady) {
+    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Uninitialized')))
+    return
+  }
+
+  if (request.body.getWords) {
+    // This is a get words request
+    response = cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
+    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Success(request, response))
+  } else {
+    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Unsupported request')))
+  }
 }
 
 const storeCedictData = (data) => {
@@ -403,7 +411,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT))
   service.registerReceiverCallback(_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT.name, messageHandler)
 
-  const data = new _lexisCs_cedict_service_data_js__WEBPACK_IMPORTED_MODULE_3__["default"]()
+  cedictData = new _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__["default"](_lexisCs_schemas_cedict_js__WEBPACK_IMPORTED_MODULE_4__["default"])
+  cedictData.init().then(() => {
+    console.log('CEDICT service is ready')
+    const startTime = Date.now()
+    const results = cedictData.getWords(['安', '502膠', '叮噹'], _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__["default"].characterForms.TRADITIONAL)
+    console.info('Results returned are:', results)
+    console.info(`Durations is ${Date.now() - startTime}ms`)
+  }).catch((error) => console.error(error))
 
   /* const resourceUrls = [
     'http://data-dev.alpheios.net/cedict/cedict-v20191029-c001.json',
@@ -416,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
   Promise.all(data).then(pieces => {
     console.info(`Total duration is ${Date.now() - startTime}`)
     pieces.forEach((piece) => {
-      console.info('Data obtained: ', piece)
+      console.info('CedictData obtained: ', piece)
     })
     const entries = pieces.map(piece => piece.entries).flat()
     console.info(`Number of records received: ${entries.length || 'none'}`)
@@ -983,10 +998,10 @@ class StoredRequest {
 
 /***/ }),
 
-/***/ "./src/resources/cedict.js":
-/*!*********************************!*\
-  !*** ./src/resources/cedict.js ***!
-  \*********************************/
+/***/ "./src/schemas/cedict.js":
+/*!*******************************!*\
+  !*** ./src/schemas/cedict.js ***!
+  \*******************************/
 /*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
