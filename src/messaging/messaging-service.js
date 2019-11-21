@@ -29,11 +29,27 @@ export default class MessagingService {
   }
 
   /**
-   * Registers destination by adding it to the destinations map and setting a response callback.
+   * Registers a new destination by adding it to the destinations map and setting a response callback.
    *
    * @param {Destination} destination - A destination object to register.
    */
   registerDestination (destination) {
+    if (this._destinations.has(destination.name)) {
+      throw new Error('Destination already exists')
+    }
+    this._destinations.set(destination.name, destination)
+    destination.registerResponseCallback(this.dispatchMessage.bind(this))
+  }
+
+  /**
+   * Updates a destinations that is already registered.
+   *
+   * @param {Destination} destination - A destination object to register.
+   */
+  updateDestination (destination) {
+    if (!this._destinations.has(destination.name)) {
+      throw new Error('Cannot update a destination that does not exist')
+    }
     this._destinations.set(destination.name, destination)
     destination.registerResponseCallback(this.dispatchMessage.bind(this))
   }
