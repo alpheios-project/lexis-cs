@@ -1,5 +1,5 @@
 /**
- * @module MessagingService
+ * @module StoredRequest
  */
 
 /** Stores information about request being sent via the messaging service */
