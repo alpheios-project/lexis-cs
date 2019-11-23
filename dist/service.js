@@ -226,10 +226,23 @@ module.exports = v4;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return CedictData; });
+/**
+ * @module CedictData
+ */
+
+/** A class to serve data from CEDICT */
 class CedictData {
+  /**
+   * @param {object} schema - An object that describes a configuration of a CEDICT data object.
+   */
   constructor (schema) {
     this._schema = schema
 
+    /**
+     * Whether the object is ready to serve data or not.
+     *
+     * @type {boolean}
+     */
     this.isReady = false
 
     /**
@@ -238,17 +251,56 @@ class CedictData {
      * @type {{entries: [], meta: {}}}
      */
     this.cedict = {
+
       // A dictionary's metadata
       meta: {},
-      // An array of dictionary records
-      entries: []
+
+      /**
+       * If data is stored in memory `entries` will keep either
+       * an array of dictionary records (if no in memory indexes will be employed) or
+       * a map of dictionary records (if in memory indexes will be used).
+       * If dictionary data will be stored in permanents storage only `entries` will be null
+       */
+      entries: null,
+
+      /**
+       * If in memory indexes be used, `traditionalHeadwordsIdx`
+       * will hold a map: Map<traditionalHeadword, Array[entryIndex]>. Otherwise it will be null.
+       */
+      traditionalHeadwordsIdx: null,
+
+      /**
+       * If in memory indexes be used, `simplifiedHeadwordsIdx`
+       * will hold a map: Map<simplifiedHeadword, Array[entryIndex]>. Otherwise it will be null.
+       */
+      simplifiedHeadwordsIdx: null
     }
   }
 
+  /**
+   * Initializes a data object.
+   *
+   * @returns {Promise<undefined> | Promise<Error>} - A promise
+   */
   init () {
-    return this.updateFromServer()
+    return new Promise((resolve, reject) => {
+      this.updateFromServer().then(() => {
+        console.info('Update from server complete')
+        this.isReady = true
+        resolve()
+      })
+    })
   }
 
+  /**
+   * Returns one or several records from CEDICT dictionary for one or several Chinese words.
+   *
+   * @param {[string]} words - An array of Chinese words.
+   * @param {string} characterForm - A string constant that specifies
+   *        a character form in words (simplified or traditional).
+   * @returns {object} - Returns an object whose keys are the words requested and values are arrays of CEDICT records
+   *          that has those words.
+   */
   getWords (words, characterForm) {
     if (!words || !this._hasData) {
       // No records can be found.
@@ -258,31 +310,142 @@ class CedictData {
     // If a single word value is provided, convert it into an array.
     if (!Array.isArray(words)) { words = [words] }
 
+    const startTime = Date.now()
     // Create an object with props for the words
     let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
 
-    this.cedict.entries.forEach(entry => {
-      const hw = (characterForm === CedictData.characterForms.SIMPLIFIED) ? entry.simplifiedHeadword : entry.traditionalHeadword
+    if (this._schema.db.stores.cedictData.inMemoryIndexes) {
+      // Use in memory indexes to find values
       words.forEach(word => {
-        if (hw === word) {
-          result[word].push(entry)
-        }
+        const idx = (characterForm === CedictData.characterForms.SIMPLIFIED)
+          ? this.cedict.simplifiedHeadwordsIdx.get(word)
+          : this.cedict.traditionalHeadwordsIdx.get(word)
+        result[word] = idx ? idx.map(idx => this.cedict.entries.get(idx)) : []
       })
-    })
+    } else {
+      // Indexes are not available, iterate over an array of values
+      this.cedict.entries.forEach(entry => {
+        const hw = (characterForm === CedictData.characterForms.SIMPLIFIED) ? entry.simplifiedHeadword : entry.traditionalHeadword
+        words.forEach(word => {
+          if (hw === word) {
+            result[word].push(entry)
+          }
+        })
+      })
+    }
+    console.info(`Request took ${Date.now() - startTime} ms`)
     return result
   }
 
+  /**
+   * Checks wither CEDICT dictionary has any data in it.
+   *
+   * @returns {boolean} - True if there is any dictionary records in the data object or false if otherwise.
+   * @private
+   */
   get _hasData () {
-    return this.cedict.entries.length > 0
+    return Boolean(this.cedict.entries)
   }
 
+  /**
+   * Loads fresh CEDICT data from a remote server.
+   *
+   * @returns {Promise<undefined> | Promise<Error>} - Returns a promise that will be resolved with undefined
+   *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
+   */
   updateFromServer () {
     const requests = this._schema.data.chunks.map(chunk => this.loadJson(`${this._schema.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
-      this.cedict.meta = chunks[0].meta
-      this.cedict.entries = chunks.map(piece => piece.entries).flat()
-      this.isReady = true
-    }).catch(error => console.error(error))
+      console.info('All chunks are loaded')
+      this.cedict.meta = chunks[0].metadata
+      if (this._schema.db.stores.cedictData.inMemoryIndexes) {
+        // Put dictionary entries into a map
+        this.cedict.entries = new Map()
+        this.cedict.entries = chunks
+          .map(piece => piece.entries)
+          .flat()
+          .reduce((map, entry) => map.set(entry.index, entry), this.cedict.entries)
+        this.buildIndexes()
+      } else {
+        // Put dictionary entries into an array
+        this.cedict.entries = chunks.map(piece => piece.entries).flat()
+      }
+      if (this._schema.db.stores.cedictData.permanentStorage) {
+        console.info('Preparing a permanent storage for data')
+        return this.storeCedictData()
+      } else {
+        return Promise.resolve()
+      }
+    }).then(() => {
+      console.info('Promise chain is finished')
+    })
+  }
+
+  buildIndexes () {
+    // Build an in-memory indexes
+    this.cedict.traditionalHeadwordsIdx = new Map()
+    this.cedict.simplifiedHeadwordsIdx = new Map()
+    this.cedict.entries.forEach(entry => {
+      this.cedict.traditionalHeadwordsIdx.has(entry.traditionalHeadword)
+        ? this.cedict.traditionalHeadwordsIdx.get(entry.traditionalHeadword).push(entry.index)
+        : this.cedict.traditionalHeadwordsIdx.set(entry.traditionalHeadword, [entry.index])
+      this.cedict.simplifiedHeadwordsIdx.has(entry.simplifiedHeadword)
+        ? this.cedict.simplifiedHeadwordsIdx.get(entry.simplifiedHeadword).push(entry.index)
+        : this.cedict.simplifiedHeadwordsIdx.set(entry.simplifiedHeadword, [entry.index])
+    })
+  }
+
+  storeCedictData () {
+    return new Promise((resolve, reject) => {
+      let openRequest = indexedDB.open(this._schema.db.name, this._schema.db.version) // eslint-disable-line prefer-const
+
+      const startTime = Date.now()
+      console.info('Starting to write data to database')
+      openRequest.onupgradeneeded = () => {
+        // This means that a database either does not exist or have incorrect
+        // TODO: add removal of previous database version objects
+        //       create a function to remove each previous version
+        console.info('onUpgradeNeeded has been called')
+        let db = openRequest.result // eslint-disable-line prefer-const
+        let store = db.createObjectStore(this._schema.db.stores.cedictData.name, { autoIncrement: true }) // eslint-disable-line prefer-const
+        if (this._schema.db.stores.cedictData.indexes) {
+          Object.values(this._schema.db.stores.cedictData.indexes).forEach(idx => {
+            console.info('Creating an index for', idx)
+            store.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
+          })
+        }
+      }
+
+      // TODO: This callback takes too long: 8000 ms. Can we do anything about it?
+      openRequest.onsuccess = () => {
+        console.info('onSuccess has been called')
+        const startTime = Date.now()
+        let db = openRequest.result // eslint-disable-line prefer-const
+        let tx = db.transaction(this._schema.db.stores.cedictData.name, 'readwrite') // eslint-disable-line prefer-const
+        let store = tx.objectStore(this._schema.db.stores.cedictData.name) // eslint-disable-line prefer-const
+
+        /*
+        Dictionary entries can be stored as either an array (if no in-memory indexes are created)
+        or as a map (if there are in-memory indexes).
+         */
+        const entriesArr = this.cedict.entries instanceof Map ? Array.from(this.cedict.entries.values()) : this.cedict.entries
+        entriesArr.forEach(entry => store.put(entry))
+
+        tx.oncomplete = () => {
+          console.info('onComplete has been called')
+          db.close()
+          console.info(`All data has been recorded, duration is ${Date.now() - startTime}`)
+          resolve()
+        }
+        console.info(`onSuccess has been finished (${Date.now() - startTime}) ms`)
+      }
+
+      openRequest.onerror = (error) => {
+        console.info('Onerror handler', error)
+      }
+
+      console.info('storeCedictData has fallen through')
+    })
   }
 
   /**
@@ -326,16 +489,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-const DB_VERSION = 1
-const DB_NAME = 'AlpheiosCedict'
-const STORE_NAME = 'CedictStore'
-const TRAD_IDX_NAME = 'traditionalHwIdx'
-const SIMPL_IDX_NAME = 'simplifiedHwIdx'
-
 let cedictData
 
 const messageHandler = (request, responseFn) => {
-  console.info('Request received is', request)
+  console.info('A message handler')
   let response
   if (!cedictData.isReady) {
     responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Uninitialized')))
@@ -351,106 +508,17 @@ const messageHandler = (request, responseFn) => {
   }
 }
 
-const storeCedictData = (data) => {
-  return new Promise((resolve, reject) => {
-    let open = indexedDB.open(DB_NAME, DB_VERSION) // eslint-disable-line prefer-const
-
-    const startTime = Date.now()
-    console.info('Starting to write data to database')
-    open.onupgradeneeded = () => {
-      console.info('onUpgradeNeeded has been called')
-      let db = open.result // eslint-disable-line prefer-const
-      let store = db.createObjectStore(STORE_NAME, { autoIncrement: true }) // eslint-disable-line prefer-const
-      store.createIndex(TRAD_IDX_NAME, 'traditionalHeadword', { unique: false })
-      store.createIndex(SIMPL_IDX_NAME, 'simplifiedHeadword', { unique: false })
-    }
-
-    open.onsuccess = () => {
-      console.info('onSuccess has been called')
-      let db = open.result // eslint-disable-line prefer-const
-      let tx = db.transaction(STORE_NAME, 'readwrite') // eslint-disable-line prefer-const
-      let store = tx.objectStore(STORE_NAME) // eslint-disable-line prefer-const
-
-      for (let i = 0; i < data.length; i++) {
-        store.put(data[i])
-      }
-
-      tx.oncomplete = () => {
-        console.info('onComplete has been called')
-        db.close()
-        console.info(`All data has been recorded, duration is ${Date.now() - startTime}`)
-        resolve()
-      }
-    }
-  })
-}
-
-const getRecords = (key) => {
-  return new Promise((resolve, reject) => {
-    let open = indexedDB.open(DB_NAME, 1) // eslint-disable-line prefer-const
-    open.onsuccess = () => {
-      let db = open.result // eslint-disable-line prefer-const
-      const transaction = db.transaction(STORE_NAME) // readonly
-      const cedictData = transaction.objectStore(STORE_NAME)
-      const tradIdx = cedictData.index(TRAD_IDX_NAME)
-
-      const request = tradIdx.getAll(key)
-
-      request.onsuccess = () => {
-        if (request.result !== undefined) {
-          resolve(request.result)
-        } else {
-          console.log('No record found')
-        }
-      }
-    }
-  })
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT))
   service.registerReceiverCallback(_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT.name, messageHandler)
 
   cedictData = new _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__["default"](_lexisCs_schemas_cedict_js__WEBPACK_IMPORTED_MODULE_4__["default"])
+  console.info('before init')
   cedictData.init().then(() => {
+    // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
-    const startTime = Date.now()
-    const results = cedictData.getWords(['安', '502膠', '叮噹'], _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__["default"].characterForms.TRADITIONAL)
-    console.info('Results returned are:', results)
-    console.info(`Durations is ${Date.now() - startTime}ms`)
   }).catch((error) => console.error(error))
-
-  /* const resourceUrls = [
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c001.json',
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c002.json',
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c003.json',
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c004.json'
-  ]
-  const data = resourceUrls.map(url => loadJson(url))
-  const startTime = Date.now()
-  Promise.all(data).then(pieces => {
-    console.info(`Total duration is ${Date.now() - startTime}`)
-    pieces.forEach((piece) => {
-      console.info('CedictData obtained: ', piece)
-    })
-    const entries = pieces.map(piece => piece.entries).flat()
-    console.info(`Number of records received: ${entries.length || 'none'}`)
-    storeCedictData(entries)
-      .then(() => {
-        const startTime = Date.now()
-        console.info('Starting to query database')
-        getRecords('安').then(results => {
-          // Returns an array of CEDICT records
-          console.info(`Search duration is ${Date.now() - startTime}`)
-          console.info('Search results are:', results)
-        }).catch((error) => {
-          console.error(error)
-        })
-      })
-      .catch(error => {
-        console.error(error)
-      })
-  }).catch(error => console.error(error)) */
+  console.info('after init')
 })
 
 
@@ -852,11 +920,27 @@ class MessagingService {
   }
 
   /**
-   * Registers destination by adding it to the destinations map and setting a response callback.
+   * Registers a new destination by adding it to the destinations map and setting a response callback.
    *
    * @param {Destination} destination - A destination object to register.
    */
   registerDestination (destination) {
+    if (this._destinations.has(destination.name)) {
+      throw new Error('Destination already exists')
+    }
+    this._destinations.set(destination.name, destination)
+    destination.registerResponseCallback(this.dispatchMessage.bind(this))
+  }
+
+  /**
+   * Updates a destinations that is already registered.
+   *
+   * @param {Destination} destination - A destination object to register.
+   */
+  updateDestination (destination) {
+    if (!this._destinations.has(destination.name)) {
+      throw new Error('Cannot update a destination that does not exist')
+    }
     this._destinations.set(destination.name, destination)
     destination.registerResponseCallback(this.dispatchMessage.bind(this))
   }
@@ -965,7 +1049,7 @@ class MessagingService {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return StoredRequest; });
 /**
- * @module MessagingService
+ * @module StoredRequest
  */
 
 /** Stores information about request being sent via the messaging service */
@@ -1014,6 +1098,9 @@ const cedict = {
     stores: {
       cedictData: {
         name: 'cedictData',
+        inMemoryData: true,
+        inMemoryIndexes: false,
+        permanentStorage: true,
         indexes: {
           traditional: {
             name: 'traditionalHwIdx',

@@ -5,6 +5,9 @@ const cedict = {
     stores: {
       cedictData: {
         name: 'cedictData',
+        inMemoryData: true,
+        inMemoryIndexes: false,
+        permanentStorage: true,
         indexes: {
           traditional: {
             name: 'traditionalHwIdx',

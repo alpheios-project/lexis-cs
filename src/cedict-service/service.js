@@ -7,6 +7,7 @@ import CedictSchema from '@lexisCs/schemas/cedict.js'
 let cedictData
 
 const messageHandler = (request, responseFn) => {
+  console.info('A message handler')
   let response
   if (!cedictData.isReady) {
     responseFn(ResponseMessage.Error(request, new Error('Uninitialized')))
@@ -27,8 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
   service.registerReceiverCallback(Destination.config.CEDICT.name, messageHandler)
 
   cedictData = new CedictData(CedictSchema)
+  console.info('before init')
   cedictData.init().then(() => {
     // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
   }).catch((error) => console.error(error))
+  console.info('after init')
 })
