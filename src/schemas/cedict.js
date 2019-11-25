@@ -1,10 +1,13 @@
 const cedict = {
   db: {
-    name: 'AlpheiosCedict',
+    name: 'cedict',
     version: 1,
     stores: {
-      cedictData: {
-        name: 'cedictData',
+      meta: {
+        name: 'meta'
+      },
+      dict: {
+        name: 'dictionary',
         inMemoryData: true,
         inMemoryIndexes: false,
         permanentStorage: true,

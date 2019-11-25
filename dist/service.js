@@ -284,6 +284,7 @@ class CedictData {
    */
   init () {
     return new Promise((resolve, reject) => {
+
       this.updateFromServer().then(() => {
         console.info('Update from server complete')
         this.isReady = true
@@ -314,7 +315,7 @@ class CedictData {
     // Create an object with props for the words
     let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
 
-    if (this._schema.db.stores.cedictData.inMemoryIndexes) {
+    if (this._schema.db.stores.dict.inMemoryIndexes) {
       // Use in memory indexes to find values
       words.forEach(word => {
         const idx = (characterForm === CedictData.characterForms.SIMPLIFIED)
@@ -358,7 +359,8 @@ class CedictData {
     return Promise.all(requests).then(chunks => {
       console.info('All chunks are loaded')
       this.cedict.meta = chunks[0].metadata
-      if (this._schema.db.stores.cedictData.inMemoryIndexes) {
+      delete this.cedict.meta.chunkNumber
+      if (this._schema.db.stores.dict.inMemoryIndexes) {
         // Put dictionary entries into a map
         this.cedict.entries = new Map()
         this.cedict.entries = chunks
@@ -370,7 +372,7 @@ class CedictData {
         // Put dictionary entries into an array
         this.cedict.entries = chunks.map(piece => piece.entries).flat()
       }
-      if (this._schema.db.stores.cedictData.permanentStorage) {
+      if (this._schema.db.stores.dict.permanentStorage) {
         console.info('Preparing a permanent storage for data')
         return this.storeCedictData()
       } else {
@@ -399,7 +401,6 @@ class CedictData {
     return new Promise((resolve, reject) => {
       let openRequest = indexedDB.open(this._schema.db.name, this._schema.db.version) // eslint-disable-line prefer-const
 
-      const startTime = Date.now()
       console.info('Starting to write data to database')
       openRequest.onupgradeneeded = () => {
         // This means that a database either does not exist or have incorrect
@@ -407,35 +408,80 @@ class CedictData {
         //       create a function to remove each previous version
         console.info('onUpgradeNeeded has been called')
         let db = openRequest.result // eslint-disable-line prefer-const
-        let store = db.createObjectStore(this._schema.db.stores.cedictData.name, { autoIncrement: true }) // eslint-disable-line prefer-const
-        if (this._schema.db.stores.cedictData.indexes) {
-          Object.values(this._schema.db.stores.cedictData.indexes).forEach(idx => {
+
+        // Create store for metadata
+        db.createObjectStore(this._schema.db.stores.meta.name, { autoIncrement: true }) // eslint-disable-line prefer-const
+
+        // Create store for dictionary entries
+        let dictStore = db.createObjectStore(this._schema.db.stores.dict.name, { keyPath: 'index' }) // eslint-disable-line prefer-const
+        if (this._schema.db.stores.dict.indexes) {
+          Object.values(this._schema.db.stores.dict.indexes).forEach(idx => {
             console.info('Creating an index for', idx)
-            store.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
+            dictStore.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
           })
         }
       }
 
-      // TODO: This callback takes too long: 8000 ms. Can we do anything about it?
       openRequest.onsuccess = () => {
-        console.info('onSuccess has been called')
+        /*
+        Upgrade has been completed or were not needed
+         */
+        console.info('dbOpen onSuccess has been called')
         const startTime = Date.now()
         let db = openRequest.result // eslint-disable-line prefer-const
-        let tx = db.transaction(this._schema.db.stores.cedictData.name, 'readwrite') // eslint-disable-line prefer-const
-        let store = tx.objectStore(this._schema.db.stores.cedictData.name) // eslint-disable-line prefer-const
 
-        /*
-        Dictionary entries can be stored as either an array (if no in-memory indexes are created)
-        or as a map (if there are in-memory indexes).
-         */
-        const entriesArr = this.cedict.entries instanceof Map ? Array.from(this.cedict.entries.values()) : this.cedict.entries
-        entriesArr.forEach(entry => store.put(entry))
+        let metaStoreTransaction = db.transaction(this._schema.db.stores.meta.name, 'readwrite') // eslint-disable-line prefer-const
+        let metaStore = metaStoreTransaction.objectStore(this._schema.db.stores.meta.name) // eslint-disable-line prefer-const
 
-        tx.oncomplete = () => {
-          console.info('onComplete has been called')
-          db.close()
-          console.info(`All data has been recorded, duration is ${Date.now() - startTime}`)
-          resolve()
+        // Clear old data from a meta store before writing a new one
+        // Is this a subtransaction within a metaTransaction?
+        const metaClearTransaction = metaStore.clear()
+        metaClearTransaction.onsuccess = () => {
+          console.info('meta clear onSuccess')
+          console.info('writing cedict metadata')
+          metaStore.put(this.cedict.meta, 1)
+        }
+
+        /* metaClearTransaction.oncomplete = () => {
+          console.info('meta clear onComplete')
+        } */
+
+        metaStoreTransaction.oncomplete = () => {
+          console.info('meta onComplete has been called')
+          // Will be closed later. How to prevent race conditions?
+          // db.close()
+        }
+
+        /* metaStoreTransaction.onsuccess = () => {
+          console.info('meta onSuccess has been called')
+          // Will be closed later. How to prevent race conditions?
+          // db.close()
+        } */
+
+        // Store dictionary data
+        let dictWriteTransaction = db.transaction(this._schema.db.stores.dict.name, 'readwrite') // eslint-disable-line prefer-const
+        let dictStore = dictWriteTransaction.objectStore(this._schema.db.stores.dict.name) // eslint-disable-line prefer-const
+
+        // Clear old data from a dictionary store
+        // TODO: This callback takes too long: 8000 ms. Can we do anything about it?
+        const dictClearTransaction = dictStore.clear()
+        dictClearTransaction.onsuccess = () => {
+          console.info('dictionary clear onSuccess')
+
+          /*
+          Dictionary entries can be stored as either an array (if no in-memory indexes are created)
+          or as a map (if there are in-memory indexes).
+           */
+          const entriesArr = this.cedict.entries instanceof Map ? Array.from(this.cedict.entries.values()) : this.cedict.entries
+          entriesArr.forEach(entry => dictStore.put(entry))
+
+          dictWriteTransaction.oncomplete = () => {
+            console.info('dictionary write onComplete has been called')
+            // TODO: This is guaranteed to finish later than the metadata transaction. Is it reliable enough?
+            db.close()
+            console.info(`All dictionary data has been recorded, duration is ${Date.now() - startTime}`)
+            resolve()
+          }
         }
         console.info(`onSuccess has been finished (${Date.now() - startTime}) ms`)
       }
@@ -444,7 +490,7 @@ class CedictData {
         console.info('Onerror handler', error)
       }
 
-      console.info('storeCedictData has fallen through')
+      console.info('storeCedictData fallen through')
     })
   }
 
@@ -1093,11 +1139,14 @@ class StoredRequest {
 __webpack_require__.r(__webpack_exports__);
 const cedict = {
   db: {
-    name: 'AlpheiosCedict',
+    name: 'cedict',
     version: 1,
     stores: {
-      cedictData: {
-        name: 'cedictData',
+      meta: {
+        name: 'meta'
+      },
+      dict: {
+        name: 'dictionary',
         inMemoryData: true,
         inMemoryIndexes: false,
         permanentStorage: true,
