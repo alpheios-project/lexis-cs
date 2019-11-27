@@ -1,6 +1,7 @@
 /**
  * @module CedictData
  */
+import CedictStorage from '@lexisCs/cedict-service/cedict-storage.js'
 
 /** A class to serve data from CEDICT */
 export default class CedictData {
@@ -8,6 +9,7 @@ export default class CedictData {
    * @param {object} schema - An object that describes a configuration of a CEDICT data object.
    */
   constructor (schema) {
+    CedictData.checkSchemaValidity(schema)
     this._schema = schema
 
     /**
@@ -16,6 +18,8 @@ export default class CedictData {
      * @type {boolean}
      */
     this.isReady = false
+
+    this._storage = null
 
     /**
      * If CEDICT be stored in memory this object will hold all its data.
@@ -26,6 +30,8 @@ export default class CedictData {
 
       // A dictionary's metadata
       meta: {},
+
+      metaKey: 1,
 
       /**
        * If data is stored in memory `entries` will keep either
@@ -50,18 +56,96 @@ export default class CedictData {
   }
 
   /**
+   * Checks if the schema supplied has all the necessary information in it.
+   * If schema is not valid it will throw an error indicating which check failed.
+   *
+   * @param {object} schema - A JSON like schema object.
+   */
+  static checkSchemaValidity (schema) {
+    if (!schema.storage) throw new Error('Storage tree is missing from a schema')
+    if (!schema.data) throw new Error('Storage tree is missing from a schema')
+    if (!schema.data.version) throw new Error('Data version is missing from a schema')
+    if (!schema.data.revision) throw new Error('Data revision is missing from a schema')
+    if (!schema.data.recordsCount) throw new Error('Data records count is missing from a schema')
+    if (!schema.data.URI) throw new Error('Data URI is missing from a schema')
+    if (!schema.data.chunks || schema.data.chunks.length === 0) throw new Error('Data chunks are missing from a schema')
+  }
+
+  /**
    * Initializes a data object.
    *
    * @returns {Promise<undefined> | Promise<Error>} - A promise
    */
   init () {
-    return new Promise((resolve, reject) => {
+    return new Promise(() => {
+      this._storage = new CedictStorage(this._schema.storage)
+      // `storage.connect()` will create a database if it does not exist yet.
+      return this._storage.connect()
+        .catch((error) => {
+          console.info('Connection error', error)
+        })
+        .then(() => {
+          console.info('Connection was established')
+          return this.getIntegrityData()
+        }).catch((error) => {
+          console.info('Integrity check failed, need to recreate a database', error)
+        })
+        .then((storageData) => {
+          console.info('Check integrity returned', storageData)
+          /*
+          Integrity data has been returned successfully which means database structure is OK.
+          Let's check if there is a new version of data available on a server.
+           */
+          if (
+            storageData.recordsInMeta !== 1 &&
+            storageData.recordsInDictionary !== this._schema.data.recordsCount &&
+            storageData.metadata.version !== this._schema.data.version &&
+            storageData.metadata.revision !== this._schema.data.revision
+          ) {
+            // Data in permanent storage needs to be updated
+            console.info('Data needs to be updated')
+            return this.updateFromServer()
+          }
+          // Check if data needs to be downloaded
+          // storage.stores.meta.create()
+        })
+        .catch((error) => {
+          console.info('Cannot download data from server', error)
+        })
+        .then(() => {
+          console.info('Data has been downloaded successfully')
+          // TODO: check schema validity
+          if (this._schema.storage.stores.dict.permanentStorage) return this.writeToStorage()
+        })
+        .then(() => {
+          this.isReady = true
+          console.info('Write stage finished')
+          return 1
+        })
+    })
 
-      this.updateFromServer().then(() => {
-        console.info('Update from server complete')
-        this.isReady = true
-        resolve()
-      })
+    /* return this.hasStoredData().then(() => {
+      console.info('stored data is available')
+    }).catch(() => {
+      console.info('data update is required')
+      this.updateFromServer()
+    }).then(() => {
+      console.info('Update from server completed')
+      this.isReady = true
+    }) */
+  }
+
+  getIntegrityData () {
+    // Resolves with number of records in both stores
+    // Rejects in database is corrupt
+    console.info('Checking a database integrity')
+    let integrityRequests = [this._storage.stores.meta, this._storage.stores.dictionary].map(store => store.count()) // eslint-disable-line prefer-const
+    integrityRequests.push(this._storage.stores.meta.get(this.cedict.metaKey))
+    return Promise.all(integrityRequests).then(([recordsInMeta, recordsInDictionary, metadata]) => {
+      console.info(`Records in meta: ${recordsInMeta}`)
+      console.info(`Records in dict: ${recordsInDictionary}`)
+      console.info('Metadata is', metadata)
+      return { recordsInMeta, recordsInDictionary, metadata }
     })
   }
 
@@ -87,7 +171,7 @@ export default class CedictData {
     // Create an object with props for the words
     let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
 
-    if (this._schema.db.stores.dict.inMemoryIndexes) {
+    if (this._schema.storage.stores.dict.inMemoryIndexes) {
       // Use in memory indexes to find values
       words.forEach(word => {
         const idx = (characterForm === CedictData.characterForms.SIMPLIFIED)
@@ -120,25 +204,38 @@ export default class CedictData {
     return Boolean(this.cedict.entries)
   }
 
-  getMetaFromStore () {
-    let openRequest = indexedDB.open(this._schema.db.name, this._schema.db.version) // eslint-disable-line prefer-const
-    openRequest.onerror = (event) => {
-      console.info('Check version on error', event)
-    }
+  hasStoredData () {
+    return new Promise((resolve, reject) => {
+      let openRequest = indexedDB.open(this._schema.storage.name, this._schema.storage.version) // eslint-disable-line prefer-const
+      openRequest.onerror = (event) => {
+        console.info('Check version on error', event)
+        reject(new Error('Database error'))
+      }
 
-    openRequest.onupgradeneeded = (event) => {
-      console.info('Check version on upgrade needed', event)
-    }
+      // This will be called if the version of the DB that was requested does not match to what's in the IndexedDB
+      /* openRequest.onupgradeneeded = (event) => {
+        console.info('Check version on upgrade needed', event)
+        // Need update data
+      } */
 
-    openRequest.onsuccess = (event) => {
-      console.info('Check version on success', event)
+      openRequest.onsuccess = (event) => {
+        console.info('Check version on success', event)
 
-      // store the result of opening the database in the db variable. This is used a lot below
-      const db = openRequest.result
+        // store the result of opening the database in the db variable. This is used a lot below
+        const db = openRequest.result
 
-      // This line will log the version of the connected database, which should be "4"
-      console.info(`Database version is ${db.version}`)
-    }
+        // This line will log the version of the connected database, which should be "4"
+        console.info(`Database version is ${db.version}`)
+
+        if (db.version !== this._schema.storage.version) {
+          console.info('DB version mismatch')
+          reject(new Error('Version mismatch'))
+        }
+
+        console.info('Update is not required')
+        resolve()
+      }
+    })
   }
 
   /**
@@ -153,7 +250,7 @@ export default class CedictData {
       console.info('All chunks are loaded')
       this.cedict.meta = chunks[0].metadata
       delete this.cedict.meta.chunkNumber
-      if (this._schema.db.stores.dict.inMemoryIndexes) {
+      if (this._schema.storage.stores.dict.inMemoryIndexes) {
         // Put dictionary entries into a map
         this.cedict.entries = new Map()
         this.cedict.entries = chunks
@@ -165,14 +262,6 @@ export default class CedictData {
         // Put dictionary entries into an array
         this.cedict.entries = chunks.map(piece => piece.entries).flat()
       }
-      if (this._schema.db.stores.dict.permanentStorage) {
-        console.info('Preparing a permanent storage for data')
-        return this.storeCedictData()
-      } else {
-        return Promise.resolve()
-      }
-    }).then(() => {
-      console.info('Promise chain is finished')
     })
   }
 
@@ -190,9 +279,22 @@ export default class CedictData {
     })
   }
 
+  writeToStorage () {
+    /*
+    `update` is used instead of `insert` here because `meta` store has only one record
+    and it's index must be as defined in `this.cedict.metaKey`.
+    Only the use of `update` allow to specify an index for the record.
+     */
+    const metaUpdate = this._storage.stores.meta.update([this.cedict.metaKey, this.cedict.meta])
+    const entriesArr = this.cedict.entries instanceof Map ? Array.from(this.cedict.entries.values()) : this.cedict.entries
+    console.info(`Write to storage, number of records is ${entriesArr.length}`)
+    const dictionaryUpdate = this._storage.stores.dictionary.insert(entriesArr)
+    return Promise.all([metaUpdate, dictionaryUpdate])
+  }
+
   storeCedictData () {
     return new Promise((resolve, reject) => {
-      let openRequest = indexedDB.open(this._schema.db.name, this._schema.db.version) // eslint-disable-line prefer-const
+      let openRequest = indexedDB.open(this._schema.storage.name, this._schema.storage.version) // eslint-disable-line prefer-const
 
       console.info('Starting to write data to database')
       openRequest.onupgradeneeded = () => {
@@ -203,12 +305,12 @@ export default class CedictData {
         let db = openRequest.result // eslint-disable-line prefer-const
 
         // Create store for metadata
-        db.createObjectStore(this._schema.db.stores.meta.name, { autoIncrement: true }) // eslint-disable-line prefer-const
+        db.createObjectStore(this._schema.storage.stores.meta.name, { autoIncrement: true }) // eslint-disable-line prefer-const
 
         // Create store for dictionary entries
-        let dictStore = db.createObjectStore(this._schema.db.stores.dict.name, { keyPath: 'index' }) // eslint-disable-line prefer-const
-        if (this._schema.db.stores.dict.indexes) {
-          Object.values(this._schema.db.stores.dict.indexes).forEach(idx => {
+        let dictStore = db.createObjectStore(this._schema.storage.stores.dict.name, { keyPath: 'index' }) // eslint-disable-line prefer-const
+        if (this._schema.storage.stores.dict.indexes) {
+          Object.values(this._schema.storage.stores.dict.indexes).forEach(idx => {
             console.info('Creating an index for', idx)
             dictStore.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
           })
@@ -223,8 +325,8 @@ export default class CedictData {
         const startTime = Date.now()
         let db = openRequest.result // eslint-disable-line prefer-const
 
-        let metaStoreTransaction = db.transaction(this._schema.db.stores.meta.name, 'readwrite') // eslint-disable-line prefer-const
-        let metaStore = metaStoreTransaction.objectStore(this._schema.db.stores.meta.name) // eslint-disable-line prefer-const
+        let metaStoreTransaction = db.transaction(this._schema.storage.stores.meta.name, 'readwrite') // eslint-disable-line prefer-const
+        let metaStore = metaStoreTransaction.objectStore(this._schema.storage.stores.meta.name) // eslint-disable-line prefer-const
 
         // Clear old data from a meta store before writing a new one
         // Is this a subtransaction within a metaTransaction?
@@ -252,8 +354,8 @@ export default class CedictData {
         } */
 
         // Store dictionary data
-        let dictWriteTransaction = db.transaction(this._schema.db.stores.dict.name, 'readwrite') // eslint-disable-line prefer-const
-        let dictStore = dictWriteTransaction.objectStore(this._schema.db.stores.dict.name) // eslint-disable-line prefer-const
+        let dictWriteTransaction = db.transaction(this._schema.storage.stores.dict.name, 'readwrite') // eslint-disable-line prefer-const
+        let dictStore = dictWriteTransaction.objectStore(this._schema.storage.stores.dict.name) // eslint-disable-line prefer-const
 
         // Clear old data from a dictionary store
         // TODO: This callback takes too long: 8000 ms. Can we do anything about it?

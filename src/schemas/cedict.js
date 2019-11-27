@@ -1,13 +1,16 @@
 const cedict = {
-  db: {
+  storage: {
     name: 'cedict',
     version: 1,
     stores: {
       meta: {
-        name: 'meta'
+        name: 'meta',
+        version: 1
       },
       dict: {
         name: 'dictionary',
+        version: 1,
+        keyPath: 'index',
         inMemoryData: true,
         inMemoryIndexes: false,
         permanentStorage: true,
@@ -29,6 +32,7 @@ const cedict = {
   data: {
     version: 20191029,
     revision: 1,
+    recordsCount: 117735,
     URI: 'http://data-dev.alpheios.net/cedict',
     chunks: [
       'cedict-v20191029-c001.json',

@@ -27,11 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const service = new MessagingService(new Destination(Destination.config.CEDICT))
   service.registerReceiverCallback(Destination.config.CEDICT.name, messageHandler)
 
-  cedictData = new CedictData(CedictSchema)
+  try {
+    cedictData = new CedictData(CedictSchema)
+  } catch (error) {
+    console.error(`Cannot create CEDICT data object: ${error}`)
+    return
+  }
   console.info('before init')
   cedictData.init().then(() => {
     // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
-  }).catch((error) => console.error(error))
+  }).catch((error) => console.error(`Cannot initialize CEDICT data object: ${error}`))
   console.info('after init')
 })
