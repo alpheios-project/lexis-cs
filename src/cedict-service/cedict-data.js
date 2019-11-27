@@ -63,7 +63,10 @@ export default class CedictData {
    */
   static checkSchemaValidity (schema) {
     if (!schema.storage) throw new Error('Storage tree is missing from a schema')
-    if (!schema.data) throw new Error('Storage tree is missing from a schema')
+    if (!schema.storage.stores) throw new Error('Stores data is missing from a schema')
+    if (!schema.storage.stores.dictionary) throw new Error('Dictionary is missing from a schema')
+    if (!schema.storage.stores.dictionary.inMemoryData) throw new Error('inMemoryData option of dictionary is missing from a schema')
+    if (!schema.data) throw new Error('Date tree is missing from a schema')
     if (!schema.data.version) throw new Error('Data version is missing from a schema')
     if (!schema.data.revision) throw new Error('Data revision is missing from a schema')
     if (!schema.data.recordsCount) throw new Error('Data records count is missing from a schema')
@@ -77,18 +80,17 @@ export default class CedictData {
    * @returns {Promise<undefined> | Promise<Error>} - A promise
    */
   init () {
-    return new Promise(() => {
+    return new Promise((resolve, reject) => {
       this._storage = new CedictStorage(this._schema.storage)
       // `storage.connect()` will create a database if it does not exist yet.
       return this._storage.connect()
         .catch((error) => {
-          console.info('Connection error', error)
+          console.error('Connection to storage cannot be established')
+          reject(error)
         })
         .then(() => {
           console.info('Connection was established')
           return this.getIntegrityData()
-        }).catch((error) => {
-          console.info('Integrity check failed, need to recreate a database', error)
         })
         .then((storageData) => {
           console.info('Check integrity returned', storageData)
@@ -97,30 +99,41 @@ export default class CedictData {
           Let's check if there is a new version of data available on a server.
            */
           if (
-            storageData.recordsInMeta !== 1 &&
-            storageData.recordsInDictionary !== this._schema.data.recordsCount &&
-            storageData.metadata.version !== this._schema.data.version &&
+            storageData.recordsInMeta !== 1 ||
+            storageData.recordsInDictionary !== this._schema.data.recordsCount ||
+            storageData.metadata.version !== this._schema.data.version ||
             storageData.metadata.revision !== this._schema.data.revision
           ) {
-            // Data in permanent storage needs to be updated
-            console.info('Data needs to be updated')
-            return this.updateFromServer()
+            throw new Error('Store is outdated')
           }
+          console.info(`In-memory storage state is`, this.cedict)
+          // Data in storage is fresh so we can read it into memory structures if we have that option enabled
+          this.cedict.meta = storageData.metadata
+
+          console.info(`In-memory storage state is`, this.cedict)
           // Check if data needs to be downloaded
           // storage.stores.meta.create()
         })
         .catch((error) => {
-          console.info('Cannot download data from server', error)
+          console.info('Integrity check failed, need to recreate a database', error)
+          // Data in permanent storage needs to be updated
+          console.info('Data needs to be updated')
+          return this._storage.destroy()
+          // `connect()` will create storage and stores
+            .then(() => this._storage.connect())
+            .then(() => this.updateFromServer())
+            .then(() => {
+              return this._schema.storage.stores.dictionary.permanentStorage ? this.writeToStorage() : Promise.resolve()
+            })
         })
-        .then(() => {
-          console.info('Data has been downloaded successfully')
-          // TODO: check schema validity
-          if (this._schema.storage.stores.dict.permanentStorage) return this.writeToStorage()
+        .catch((error) => {
+          console.info('Cannot download data from server', error)
+          reject(error)
         })
         .then(() => {
           this.isReady = true
-          console.info('Write stage finished')
-          return 1
+          console.info('Initialization is completed')
+          resolve()
         })
     })
 
@@ -171,7 +184,7 @@ export default class CedictData {
     // Create an object with props for the words
     let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
 
-    if (this._schema.storage.stores.dict.inMemoryIndexes) {
+    if (this._schema.storage.stores.dictionary.inMemoryIndexes) {
       // Use in memory indexes to find values
       words.forEach(word => {
         const idx = (characterForm === CedictData.characterForms.SIMPLIFIED)
@@ -250,7 +263,7 @@ export default class CedictData {
       console.info('All chunks are loaded')
       this.cedict.meta = chunks[0].metadata
       delete this.cedict.meta.chunkNumber
-      if (this._schema.storage.stores.dict.inMemoryIndexes) {
+      if (this._schema.storage.stores.dictionary.inMemoryIndexes) {
         // Put dictionary entries into a map
         this.cedict.entries = new Map()
         this.cedict.entries = chunks
@@ -308,9 +321,9 @@ export default class CedictData {
         db.createObjectStore(this._schema.storage.stores.meta.name, { autoIncrement: true }) // eslint-disable-line prefer-const
 
         // Create store for dictionary entries
-        let dictStore = db.createObjectStore(this._schema.storage.stores.dict.name, { keyPath: 'index' }) // eslint-disable-line prefer-const
-        if (this._schema.storage.stores.dict.indexes) {
-          Object.values(this._schema.storage.stores.dict.indexes).forEach(idx => {
+        let dictStore = db.createObjectStore(this._schema.storage.stores.dictionary.name, { keyPath: 'index' }) // eslint-disable-line prefer-const
+        if (this._schema.storage.stores.dictionary.indexes) {
+          Object.values(this._schema.storage.stores.dictionary.indexes).forEach(idx => {
             console.info('Creating an index for', idx)
             dictStore.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
           })
@@ -354,8 +367,8 @@ export default class CedictData {
         } */
 
         // Store dictionary data
-        let dictWriteTransaction = db.transaction(this._schema.storage.stores.dict.name, 'readwrite') // eslint-disable-line prefer-const
-        let dictStore = dictWriteTransaction.objectStore(this._schema.storage.stores.dict.name) // eslint-disable-line prefer-const
+        let dictWriteTransaction = db.transaction(this._schema.storage.stores.dictionary.name, 'readwrite') // eslint-disable-line prefer-const
+        let dictStore = dictWriteTransaction.objectStore(this._schema.storage.stores.dictionary.name) // eslint-disable-line prefer-const
 
         // Clear old data from a dictionary store
         // TODO: This callback takes too long: 8000 ms. Can we do anything about it?

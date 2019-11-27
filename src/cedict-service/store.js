@@ -94,6 +94,7 @@ export default class Store {
         console.info('Records returned are:', records)
         resolve(records)
       }
+      // Transaction is completer later than `getRequest.onsuccess` is triggered
       transaction.oncomplete = () => console.info('get transaction is complete')
       transaction.onerror = (error) => { console.info('get transaction error'); reject(error) }
     })

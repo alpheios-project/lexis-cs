@@ -306,7 +306,7 @@ class CedictData {
    * @returns {Promise<undefined> | Promise<Error>} - A promise
    */
   init () {
-    return new Promise(() => {
+    return new Promise((resolve, reject) => {
       this._storage = new _lexisCs_cedict_service_cedict_storage_js__WEBPACK_IMPORTED_MODULE_0__["default"](this._schema.storage)
       // `storage.connect()` will create a database if it does not exist yet.
       return this._storage.connect()
@@ -315,33 +315,45 @@ class CedictData {
         })
         .then(() => {
           console.info('Connection was established')
-          return this.checkIntegrity()
+          return this.getIntegrityData()
         })
-        .then((storageInfo) => {
-          console.info('Check integrity returned', storageInfo)
-          return this.updateFromServer()
+        .then((storageData) => {
+          console.info('Check integrity returned', storageData)
+          /*
+          Integrity data has been returned successfully which means database structure is OK.
+          Let's check if there is a new version of data available on a server.
+           */
+          if (
+            storageData.recordsInMeta !== 1 ||
+            storageData.recordsInDictionary !== this._schema.data.recordsCount ||
+            storageData.metadata.version !== this._schema.data.version ||
+            storageData.metadata.revision !== this._schema.data.revision
+          ) {
+            throw new Error('Store is outdated')
+          }
           // Check if data needs to be downloaded
           // storage.stores.meta.create()
         })
         .catch((error) => {
           console.info('Integrity check failed, need to recreate a database', error)
+          // Data in permanent storage needs to be updated
+          console.info('Data needs to be updated')
+          return this._storage.destroy()
+          // `connect()` will create storage and stores
+            .then(() => this._storage.connect())
+            .then(() => this.updateFromServer())
+            .then(() => {
+              return this._schema.storage.stores.dict.permanentStorage ? this.writeToStorage() : Promise.resolve()
+            })
         })
-        .then((storageInfo) => {
-          console.info('Check integrity returned', storageInfo)
-          return this.updateFromServer()
-
-          // Check if data needs to be downloaded
-          // storage.stores.meta.create()
-        })
-        .then(() => {
-          console.info('Data has been updated')
-          // TODO: check schema validity
-          if (this._schema.storage.stores.dict.permanentStorage) return this.writeToStorage()
+        .catch((error) => {
+          console.info('Cannot download data from server', error)
+          reject(error)
         })
         .then(() => {
           this.isReady = true
-          console.info('Write stage finished')
-          return 1
+          console.info('Initialization is completed')
+          resolve()
         })
     })
 
@@ -356,7 +368,7 @@ class CedictData {
     }) */
   }
 
-  checkIntegrity () {
+  getIntegrityData () {
     // Resolves with number of records in both stores
     // Rejects in database is corrupt
     console.info('Checking a database integrity')
@@ -668,6 +680,7 @@ class CedictStorage {
   }
 
   connect () {
+    console.info('connect has been called')
     return new Promise((resolve, reject) => {
       // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
       const openRequest = indexedDB.open(this._schema.name, this._schema.version) // eslint-disable-line prefer-const
@@ -682,6 +695,12 @@ class CedictStorage {
 
       openRequest.onerror = (error) => reject(error)
     })
+  }
+
+  disconnect () {
+    if (this._db) {
+      this._db.close()
+    }
   }
 
   /**
@@ -699,10 +718,13 @@ class CedictStorage {
     return Promise.all(storeCreateRequests)
   }
 
-  disconnect () {
-    if (this._db) {
-      this._db.close()
-    }
+  destroy () {
+    return new Promise((resolve, reject) => {
+      this.disconnect()
+      const deleteRequest = indexedDB.deleteDatabase(this._schema.name)
+      deleteRequest.onsuccess = () => { console.info('database has been destroyed'); resolve() }
+      deleteRequest.onerror = () => { reject(new Error('Storage cannot be destroyed')) }
+    })
   }
 }
 
@@ -875,6 +897,7 @@ class Store {
         console.info('Records returned are:', records)
         resolve(records)
       }
+      // Transaction is completer later than `getRequest.onsuccess` is triggered
       transaction.oncomplete = () => console.info('get transaction is complete')
       transaction.onerror = (error) => { console.info('get transaction error'); reject(error) }
     })
@@ -1385,6 +1408,7 @@ class MessagingService {
    * @returns {Promise} - A promise that will be resolved with the message response or rejected with an error info.
    */
   registerRequest (request, timeout = 10000) {
+    if (this._messages.has(request.ID)) throw new Error(`Request with ${request.ID} ID is already registered`)
     let storedRequest = new _stored_request__WEBPACK_IMPORTED_MODULE_1__["default"](request) // eslint-disable-line prefer-const
     this._messages.set(request.ID, storedRequest)
     storedRequest.timeoutID = window.setTimeout((requestID) => {

@@ -24,6 +24,7 @@ export default class CedictStorage {
   }
 
   connect () {
+    console.info('connect has been called')
     return new Promise((resolve, reject) => {
       // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
       const openRequest = indexedDB.open(this._schema.name, this._schema.version) // eslint-disable-line prefer-const
@@ -38,6 +39,12 @@ export default class CedictStorage {
 
       openRequest.onerror = (error) => reject(error)
     })
+  }
+
+  disconnect () {
+    if (this._db) {
+      this._db.close()
+    }
   }
 
   /**
@@ -55,9 +62,12 @@ export default class CedictStorage {
     return Promise.all(storeCreateRequests)
   }
 
-  disconnect () {
-    if (this._db) {
-      this._db.close()
-    }
+  destroy () {
+    return new Promise((resolve, reject) => {
+      this.disconnect()
+      const deleteRequest = indexedDB.deleteDatabase(this._schema.name)
+      deleteRequest.onsuccess = () => { console.info('database has been destroyed'); resolve() }
+      deleteRequest.onerror = () => { reject(new Error('Storage cannot be destroyed')) }
+    })
   }
 }

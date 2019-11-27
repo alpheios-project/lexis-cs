@@ -7,7 +7,7 @@ const cedict = {
         name: 'meta',
         version: 1
       },
-      dict: {
+      dictionary: {
         name: 'dictionary',
         version: 1,
         keyPath: 'index',
