@@ -108,16 +108,3 @@ export default class WindowIframeDestination extends Destination {
     }
   }
 }
-/*
-Below are some preset configurations for the most commonly used cases
- */
-WindowIframeDestination.config = {}
-
-/*
-This configuration is used to access CEDICT data.
- */
-WindowIframeDestination.config.CEDICT = {
-  name: 'cedict',
-  targetURL: 'http://data-dev.alpheios.net',
-  targetIframeID: 'alpheios-lexis-cs'
-}
