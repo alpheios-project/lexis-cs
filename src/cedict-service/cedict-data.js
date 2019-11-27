@@ -122,9 +122,7 @@ export default class CedictData {
           // `connect()` will create storage and stores
             .then(() => this._storage.connect())
             .then(() => this.updateFromServer())
-            .then(() => {
-              return this._schema.storage.stores.dictionary.permanentStorage ? this.writeToStorage() : Promise.resolve()
-            })
+            .then(() => this.writeToStorage())
         })
         .catch((error) => {
           console.info('Cannot download data from server', error)

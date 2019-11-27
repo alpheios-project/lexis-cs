@@ -100,6 +100,23 @@ export default class Store {
     })
   }
 
+  getAll () {
+    return new Promise((resolve, reject) => {
+      if (!this._db) reject(new Error('Database object is missing'))
+      const transaction = this._db.transaction(this._schema.name, Store.accessModes.READ)
+      const store = transaction.objectStore(this._schema.name)
+      const getRequest = store.getAll()
+      getRequest.onsuccess = () => {
+        const records = getRequest.result
+        console.info('Records returned are:', records)
+        resolve(records)
+      }
+      // Transaction is completer later than `getRequest.onsuccess` is triggered
+      transaction.oncomplete = () => console.info('getAll transaction is complete')
+      transaction.onerror = (error) => { console.info('getAll transaction error'); reject(error) }
+    })
+  }
+
   insert (records) {
     return new Promise((resolve, reject) => {
       if (!records) { resolve() } // Do nothing
