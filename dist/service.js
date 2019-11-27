@@ -226,10 +226,23 @@ module.exports = v4;
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return CedictData; });
+/**
+ * @module CedictData
+ */
+
+/** A class to serve data from CEDICT */
 class CedictData {
+  /**
+   * @param {object} schema - An object that describes a configuration of a CEDICT data object.
+   */
   constructor (schema) {
     this._schema = schema
 
+    /**
+     * Whether the object is ready to serve data or not.
+     *
+     * @type {boolean}
+     */
     this.isReady = false
 
     /**
@@ -245,10 +258,24 @@ class CedictData {
     }
   }
 
+  /**
+   * Initializes a data object.
+   *
+   * @returns {Promise<undefined> | Promise<Error>} - A promise
+   */
   init () {
     return this.updateFromServer()
   }
 
+  /**
+   * Returns one or several records from CEDICT dictionary for one or several Chinese words.
+   *
+   * @param {[string]} words - An array of Chinese words.
+   * @param {string} characterForm - A string constant that specifies
+   *        a character form in words (simplified or traditional).
+   * @returns {object} - Returns an object whose keys are the words requested and values are arrays of CEDICT records
+   *          that has those words.
+   */
   getWords (words, characterForm) {
     if (!words || !this._hasData) {
       // No records can be found.
@@ -272,17 +299,29 @@ class CedictData {
     return result
   }
 
+  /**
+   * Checks wither CEDICT dictionary has any data in it.
+   *
+   * @returns {boolean} - True if there is any dictionary records in the data object or false if otherwise.
+   * @private
+   */
   get _hasData () {
     return this.cedict.entries.length > 0
   }
 
+  /**
+   * Loads fresh CEDICT data from a remote server.
+   *
+   * @returns {Promise<undefined> | Promise<Error>} - Returns a promise that will be resolved with undefined
+   *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
+   */
   updateFromServer () {
     const requests = this._schema.data.chunks.map(chunk => this.loadJson(`${this._schema.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
       this.cedict.meta = chunks[0].meta
       this.cedict.entries = chunks.map(piece => piece.entries).flat()
       this.isReady = true
-    }).catch(error => console.error(error))
+    })
   }
 
   /**
@@ -310,7 +349,7 @@ CedictData.characterForms = {
 /*!***************************************!*\
   !*** ./src/cedict-service/service.js ***!
   \***************************************/
-/*! no exports provided */
+/*! exports provided: default */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -326,16 +365,20 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-const DB_VERSION = 1
-const DB_NAME = 'AlpheiosCedict'
-const STORE_NAME = 'CedictStore'
-const TRAD_IDX_NAME = 'traditionalHwIdx'
-const SIMPL_IDX_NAME = 'simplifiedHwIdx'
+/**
+ * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
+ *
+ * @type {{targetIframeID: string, name: string, targetURL: string}}
+ */
+const CedictDestinationConfig = {
+  name: 'cedict',
+  targetURL: 'http://data-dev.alpheios.net',
+  targetIframeID: 'alpheios-lexis-cs'
+}
 
 let cedictData
 
 const messageHandler = (request, responseFn) => {
-  console.info('Request received is', request)
   let response
   if (!cedictData.isReady) {
     responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Uninitialized')))
@@ -351,107 +394,18 @@ const messageHandler = (request, responseFn) => {
   }
 }
 
-const storeCedictData = (data) => {
-  return new Promise((resolve, reject) => {
-    let open = indexedDB.open(DB_NAME, DB_VERSION) // eslint-disable-line prefer-const
-
-    const startTime = Date.now()
-    console.info('Starting to write data to database')
-    open.onupgradeneeded = () => {
-      console.info('onUpgradeNeeded has been called')
-      let db = open.result // eslint-disable-line prefer-const
-      let store = db.createObjectStore(STORE_NAME, { autoIncrement: true }) // eslint-disable-line prefer-const
-      store.createIndex(TRAD_IDX_NAME, 'traditionalHeadword', { unique: false })
-      store.createIndex(SIMPL_IDX_NAME, 'simplifiedHeadword', { unique: false })
-    }
-
-    open.onsuccess = () => {
-      console.info('onSuccess has been called')
-      let db = open.result // eslint-disable-line prefer-const
-      let tx = db.transaction(STORE_NAME, 'readwrite') // eslint-disable-line prefer-const
-      let store = tx.objectStore(STORE_NAME) // eslint-disable-line prefer-const
-
-      for (let i = 0; i < data.length; i++) {
-        store.put(data[i])
-      }
-
-      tx.oncomplete = () => {
-        console.info('onComplete has been called')
-        db.close()
-        console.info(`All data has been recorded, duration is ${Date.now() - startTime}`)
-        resolve()
-      }
-    }
-  })
-}
-
-const getRecords = (key) => {
-  return new Promise((resolve, reject) => {
-    let open = indexedDB.open(DB_NAME, 1) // eslint-disable-line prefer-const
-    open.onsuccess = () => {
-      let db = open.result // eslint-disable-line prefer-const
-      const transaction = db.transaction(STORE_NAME) // readonly
-      const cedictData = transaction.objectStore(STORE_NAME)
-      const tradIdx = cedictData.index(TRAD_IDX_NAME)
-
-      const request = tradIdx.getAll(key)
-
-      request.onsuccess = () => {
-        if (request.result !== undefined) {
-          resolve(request.result)
-        } else {
-          console.log('No record found')
-        }
-      }
-    }
-  })
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT))
-  service.registerReceiverCallback(_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT.name, messageHandler)
+  service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
   cedictData = new _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__["default"](_lexisCs_schemas_cedict_js__WEBPACK_IMPORTED_MODULE_4__["default"])
   cedictData.init().then(() => {
+    // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
-    const startTime = Date.now()
-    const results = cedictData.getWords(['安', '502膠', '叮噹'], _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__["default"].characterForms.TRADITIONAL)
-    console.info('Results returned are:', results)
-    console.info(`Durations is ${Date.now() - startTime}ms`)
   }).catch((error) => console.error(error))
-
-  /* const resourceUrls = [
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c001.json',
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c002.json',
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c003.json',
-    'http://data-dev.alpheios.net/cedict/cedict-v20191029-c004.json'
-  ]
-  const data = resourceUrls.map(url => loadJson(url))
-  const startTime = Date.now()
-  Promise.all(data).then(pieces => {
-    console.info(`Total duration is ${Date.now() - startTime}`)
-    pieces.forEach((piece) => {
-      console.info('CedictData obtained: ', piece)
-    })
-    const entries = pieces.map(piece => piece.entries).flat()
-    console.info(`Number of records received: ${entries.length || 'none'}`)
-    storeCedictData(entries)
-      .then(() => {
-        const startTime = Date.now()
-        console.info('Starting to query database')
-        getRecords('安').then(results => {
-          // Returns an array of CEDICT records
-          console.info(`Search duration is ${Date.now() - startTime}`)
-          console.info('Search results are:', results)
-        }).catch((error) => {
-          console.error(error)
-        })
-      })
-      .catch(error => {
-        console.error(error)
-      })
-  }).catch(error => console.error(error)) */
 })
+
+/* harmony default export */ __webpack_exports__["default"] = (CedictDestinationConfig);
 
 
 /***/ }),
@@ -633,19 +587,6 @@ class WindowIframeDestination extends _lexisCs_messaging_destinations_destinatio
       this._responseCallback(responseMessage)
     }
   }
-}
-/*
-Below are some preset configurations for the most commonly used cases
- */
-WindowIframeDestination.config = {}
-
-/*
-This configuration is used to access CEDICT data.
- */
-WindowIframeDestination.config.CEDICT = {
-  name: 'cedict',
-  targetURL: 'http://data-dev.alpheios.net',
-  targetIframeID: 'alpheios-lexis-cs'
 }
 
 
@@ -852,11 +793,27 @@ class MessagingService {
   }
 
   /**
-   * Registers destination by adding it to the destinations map and setting a response callback.
+   * Registers a new destination by adding it to the destinations map and setting a response callback.
    *
    * @param {Destination} destination - A destination object to register.
    */
   registerDestination (destination) {
+    if (this._destinations.has(destination.name)) {
+      throw new Error('Destination already exists')
+    }
+    this._destinations.set(destination.name, destination)
+    destination.registerResponseCallback(this.dispatchMessage.bind(this))
+  }
+
+  /**
+   * Updates a destinations that is already registered.
+   *
+   * @param {Destination} destination - A destination object to register.
+   */
+  updateDestination (destination) {
+    if (!this._destinations.has(destination.name)) {
+      throw new Error('Cannot update a destination that does not exist')
+    }
     this._destinations.set(destination.name, destination)
     destination.registerResponseCallback(this.dispatchMessage.bind(this))
   }
@@ -899,6 +856,7 @@ class MessagingService {
    * @returns {Promise} - A promise that will be resolved with the message response or rejected with an error info.
    */
   registerRequest (request, timeout = 10000) {
+    if (this._messages.has(request.ID)) throw new Error(`Request with ${request.ID} ID is already registered`)
     let storedRequest = new _stored_request__WEBPACK_IMPORTED_MODULE_1__["default"](request) // eslint-disable-line prefer-const
     this._messages.set(request.ID, storedRequest)
     storedRequest.timeoutID = window.setTimeout((requestID) => {
@@ -965,7 +923,7 @@ class MessagingService {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return StoredRequest; });
 /**
- * @module MessagingService
+ * @module StoredRequest
  */
 
 /** Stores information about request being sent via the messaging service */

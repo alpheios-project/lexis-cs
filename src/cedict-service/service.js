@@ -4,6 +4,17 @@ import Destination from '@lexisCs/messaging/destinations/window-iframe-destinati
 import CedictData from '@lexisCs/cedict-service/cedict-data.js'
 import CedictSchema from '@lexisCs/schemas/cedict.js'
 
+/**
+ * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
+ *
+ * @type {{targetIframeID: string, name: string, targetURL: string}}
+ */
+const CedictDestinationConfig = {
+  name: 'cedict',
+  targetURL: 'http://data-dev.alpheios.net',
+  targetIframeID: 'alpheios-lexis-cs'
+}
+
 let cedictData
 
 const messageHandler = (request, responseFn) => {
@@ -24,7 +35,7 @@ const messageHandler = (request, responseFn) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   const service = new MessagingService(new Destination(Destination.config.CEDICT))
-  service.registerReceiverCallback(Destination.config.CEDICT.name, messageHandler)
+  service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
   cedictData = new CedictData(CedictSchema)
   cedictData.init().then(() => {
@@ -32,3 +43,5 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('CEDICT service is ready')
   }).catch((error) => console.error(error))
 })
+
+export default CedictDestinationConfig
