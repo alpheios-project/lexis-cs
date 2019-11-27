@@ -92,6 +92,7 @@ export default class MessagingService {
    * @returns {Promise} - A promise that will be resolved with the message response or rejected with an error info.
    */
   registerRequest (request, timeout = 10000) {
+    if (this._messages.has(request.ID)) throw new Error(`Request with ${request.ID} ID is already registered`)
     let storedRequest = new StoredRequest(request) // eslint-disable-line prefer-const
     this._messages.set(request.ID, storedRequest)
     storedRequest.timeoutID = window.setTimeout((requestID) => {
