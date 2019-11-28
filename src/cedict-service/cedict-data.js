@@ -64,8 +64,15 @@ export default class CedictData {
   static checkSchemaValidity (schema) {
     if (!schema.storage) throw new Error('Storage tree is missing from a schema')
     if (!schema.storage.stores) throw new Error('Stores data is missing from a schema')
-    if (!schema.storage.stores.dictionary) throw new Error('Dictionary is missing from a schema')
-    if (!schema.storage.stores.dictionary.inMemoryData) throw new Error('inMemoryData option of dictionary is missing from a schema')
+    if (!schema.storage.stores.dictionary) throw new Error('Dictionary tree is missing from a schema')
+    if (!schema.storage.stores.dictionary.primaryIndex) throw new Error('A primaryIndex tree of a dictionary is missing from a schema')
+    if (!schema.storage.stores.dictionary.primaryIndex.hasOwnProperty('keyPath')) throw new Error('A keyPath option of a primaryIndex tree of a dictionary is missing from a schema') // eslint-disable-line no-prototype-builtins
+    if (!schema.storage.stores.dictionary.volatileStorage) throw new Error('A volatileStorage tree of a dictionary is missing from a schema')
+    if (!schema.storage.stores.dictionary.volatileStorage.hasOwnProperty('enabled')) throw new Error('enabled option of a volatileStorage tree of a dictionary is missing from a schema') // eslint-disable-line no-prototype-builtins
+    if (!schema.storage.stores.dictionary.volatileStorage.hasOwnProperty('indexed')) throw new Error('indexed option of a volatileStorage tree of a dictionary is missing from a schema') // eslint-disable-line no-prototype-builtins
+    if (!schema.storage.stores.dictionary.permanentStorage) throw new Error('A permanentStorage tree of a dictionary is missing from a schema')
+    if (!schema.storage.stores.dictionary.permanentStorage.hasOwnProperty('enabled')) throw new Error('enabled option of a permanentStorage tree of a dictionary is missing from a schema') // eslint-disable-line no-prototype-builtins
+    if (!schema.storage.stores.dictionary.permanentStorage.hasOwnProperty('indexed')) throw new Error('indexed option of a permanentStorage tree of a dictionary is missing from a schema') // eslint-disable-line no-prototype-builtins
     if (!schema.data) throw new Error('Date tree is missing from a schema')
     if (!schema.data.version) throw new Error('Data version is missing from a schema')
     if (!schema.data.revision) throw new Error('Data revision is missing from a schema')
@@ -90,7 +97,7 @@ export default class CedictData {
         })
         .then(() => {
           console.info('Connection was established')
-          return this.getIntegrityData()
+          return this.permanentStorageIntegrity()
         })
         .then((storageData) => {
           console.info('Check integrity returned', storageData)
@@ -109,10 +116,13 @@ export default class CedictData {
           console.info(`In-memory storage state is`, this.cedict)
           // Data in storage is fresh so we can read it into memory structures if we have that option enabled
           this.cedict.meta = storageData.metadata
-
-          console.info(`In-memory storage state is`, this.cedict)
-          // Check if data needs to be downloaded
-          // storage.stores.meta.create()
+          if (this._schema.storage.stores.dictionary.volatileStorage.enabled) {
+            return this._storage.stores.dictionary.getAllEntries()
+              .then((entries) => {
+                this.populateVolatileStorage(entries)
+                console.info(`In-memory storage state after data loading is`, this.cedict)
+              }).catch((error) => reject(error))
+          }
         })
         .catch((error) => {
           console.info('Integrity check failed, need to recreate a database', error)
@@ -121,7 +131,7 @@ export default class CedictData {
           return this._storage.destroy()
           // `connect()` will create storage and stores
             .then(() => this._storage.connect())
-            .then(() => this.updateFromServer())
+            .then(() => this.downloadData())
             .then(() => this.writeToStorage())
         })
         .catch((error) => {
@@ -134,29 +144,22 @@ export default class CedictData {
           resolve()
         })
     })
-
-    /* return this.hasStoredData().then(() => {
-      console.info('stored data is available')
-    }).catch(() => {
-      console.info('data update is required')
-      this.updateFromServer()
-    }).then(() => {
-      console.info('Update from server completed')
-      this.isReady = true
-    }) */
   }
 
-  getIntegrityData () {
+  static isKnownCharacterForm(characterForm) {
+    return Array.from(Object.values(CedictData.characterForms)).includes(characterForm)
+  }
+
+  permanentStorageIntegrity () {
     // Resolves with number of records in both stores
     // Rejects in database is corrupt
     console.info('Checking a database integrity')
     let integrityRequests = [this._storage.stores.meta, this._storage.stores.dictionary].map(store => store.count()) // eslint-disable-line prefer-const
     integrityRequests.push(this._storage.stores.meta.get(this.cedict.metaKey))
     return Promise.all(integrityRequests).then(([recordsInMeta, recordsInDictionary, metadata]) => {
-      console.info(`Records in meta: ${recordsInMeta}`)
-      console.info(`Records in dict: ${recordsInDictionary}`)
-      console.info('Metadata is', metadata)
-      return { recordsInMeta, recordsInDictionary, metadata }
+      if (!metadata || metadata.length === 0) throw new Error('Metadata store has no records')
+      if (metadata.length > 1) throw new Error('Metadata store has more than one record')
+      return { recordsInMeta, recordsInDictionary, metadata: metadata[0] }
     })
   }
 
@@ -170,19 +173,71 @@ export default class CedictData {
    *          that has those words.
    */
   getWords (words, characterForm) {
-    if (!words || !this._hasData) {
-      // No records can be found.
-      return []
+    // CedictData object is not prepared to serve this request
+    if (!this.isReady) return Promise.reject(new Error('CEDICT data is not ready'))
+
+    let getAllCharacterForms = true
+    // If character form is not specified we will return all records for all character forms
+    if (typeof characterForm !== 'undefined') {
+      // Some value is provided for a characterForm
+      if (!CedictData.isKnownCharacterForm(characterForm)) return Promise.reject(new Error(`Unknown character form "${characterForm}"`))
+      getAllCharacterForms = false
     }
 
-    // If a single word value is provided, convert it into an array.
-    if (!Array.isArray(words)) { words = [words] }
+    // Nothing to do
+    if (!words) return Promise.resolve({})
 
-    const startTime = Date.now()
+    // Always prefer volatile storage to a permanent one
+    if (this._schema.storage.stores.dictionary.volatileStorage.enabled) {
+      return new Promise((resolve, reject) => {
+        try {
+          const startTime = Date.now()
+          if (getAllCharacterForms) {
+            // Return records for all known character forms
+            const result = {
+              [CedictData.characterForms.SIMPLIFIED]: this._getWordsFromVolatileStorage(words, CedictData.characterForms.SIMPLIFIED),
+              [CedictData.characterForms.TRADITIONAL]: this._getWordsFromVolatileStorage(words, CedictData.characterForms.TRADITIONAL)
+            }
+            console.info(`Request took ${Date.now() - startTime} ms`)
+            resolve(result)
+          } else {
+            // Return records for a specified character set
+            const result = {
+              [characterForm]: this._getWordsFromVolatileStorage(words, characterForm),
+            }
+            console.info(`Request took ${Date.now() - startTime} ms`)
+            resolve(result)
+          }
+        } catch (error) {
+          reject(error)
+        }
+      })
+    } else {
+      // Use permanent storage
+      if (getAllCharacterForms) {
+        // Return records for all known character forms
+        const requests = [
+          this._getWordsFromPermanentStorage(words, CedictData.characterForms.SIMPLIFIED),
+          this._getWordsFromPermanentStorage(words, CedictData.characterForms.TRADITIONAL)
+        ]
+        return Promise.all(requests).then((results) => ({
+          [CedictData.characterForms.SIMPLIFIED]: results[0],
+          [CedictData.characterForms.TRADITIONAL]: results[1]
+        }))
+      } else {
+        // Return records for a specified character set
+        return this._getWordsFromPermanentStorage(words, characterForm).then((result) => ({ [characterForm]: result }))
+      }
+    }
+  }
+
+  _getWordsFromVolatileStorage (words, characterForm) {
+    // If a single word value is provided, convert it into an array
+    if (!Array.isArray(words)) { words = [words] }
     // Create an object with props for the words
     let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
-
-    if (this._schema.storage.stores.dictionary.inMemoryIndexes) {
+    // Retrieve from memory
+    if (this._schema.storage.stores.dictionary.volatileStorage.indexed) {
       // Use in memory indexes to find values
       words.forEach(word => {
         const idx = (characterForm === CedictData.characterForms.SIMPLIFIED)
@@ -201,52 +256,12 @@ export default class CedictData {
         })
       })
     }
-    console.info(`Request took ${Date.now() - startTime} ms`)
     return result
   }
 
-  /**
-   * Checks wither CEDICT dictionary has any data in it.
-   *
-   * @returns {boolean} - True if there is any dictionary records in the data object or false if otherwise.
-   * @private
-   */
-  get _hasData () {
-    return Boolean(this.cedict.entries)
-  }
-
-  hasStoredData () {
-    return new Promise((resolve, reject) => {
-      let openRequest = indexedDB.open(this._schema.storage.name, this._schema.storage.version) // eslint-disable-line prefer-const
-      openRequest.onerror = (event) => {
-        console.info('Check version on error', event)
-        reject(new Error('Database error'))
-      }
-
-      // This will be called if the version of the DB that was requested does not match to what's in the IndexedDB
-      /* openRequest.onupgradeneeded = (event) => {
-        console.info('Check version on upgrade needed', event)
-        // Need update data
-      } */
-
-      openRequest.onsuccess = (event) => {
-        console.info('Check version on success', event)
-
-        // store the result of opening the database in the db variable. This is used a lot below
-        const db = openRequest.result
-
-        // This line will log the version of the connected database, which should be "4"
-        console.info(`Database version is ${db.version}`)
-
-        if (db.version !== this._schema.storage.version) {
-          console.info('DB version mismatch')
-          reject(new Error('Version mismatch'))
-        }
-
-        console.info('Update is not required')
-        resolve()
-      }
-    })
+  _getWordsFromPermanentStorage (words, characterForm) {
+    const index = (characterForm === CedictData.characterForms.SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
+    return this._storage.stores.dictionary.getEntries(words, { index })
   }
 
   /**
@@ -255,28 +270,33 @@ export default class CedictData {
    * @returns {Promise<undefined> | Promise<Error>} - Returns a promise that will be resolved with undefined
    *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
    */
-  updateFromServer () {
+  downloadData () {
     const requests = this._schema.data.chunks.map(chunk => this.loadJson(`${this._schema.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
       console.info('All chunks are loaded')
       this.cedict.meta = chunks[0].metadata
       delete this.cedict.meta.chunkNumber
-      if (this._schema.storage.stores.dictionary.inMemoryIndexes) {
-        // Put dictionary entries into a map
-        this.cedict.entries = new Map()
-        this.cedict.entries = chunks
-          .map(piece => piece.entries)
-          .flat()
-          .reduce((map, entry) => map.set(entry.index, entry), this.cedict.entries)
-        this.buildIndexes()
-      } else {
-        // Put dictionary entries into an array
-        this.cedict.entries = chunks.map(piece => piece.entries).flat()
-      }
+      this.populateVolatileStorage(chunks.map(piece => piece.entries).flat())
     })
   }
 
-  buildIndexes () {
+  populateVolatileStorage (entries) {
+    if (this._schema.storage.stores.dictionary.volatileStorage.indexed) {
+      // Dictionary entries will be placed into a map using a primary key.
+      this.cedict.entries = new Map()
+      this.cedict.entries = entries.reduce(
+        (map, entry) => map.set(entry[this._schema.storage.stores.dictionary.primaryIndex.keyPath], entry),
+        this.cedict.entries
+      )
+      // Additional maps will be created for each index.
+      this.indexVolatileStorage()
+    } else {
+      // No indexes will be created and dictionary entries will be placed into an array
+      this.cedict.entries = entries
+    }
+  }
+
+  indexVolatileStorage () {
     // Build an in-memory indexes
     this.cedict.traditionalHeadwordsIdx = new Map()
     this.cedict.simplifiedHeadwordsIdx = new Map()
@@ -303,103 +323,6 @@ export default class CedictData {
     return Promise.all([metaUpdate, dictionaryUpdate])
   }
 
-  storeCedictData () {
-    return new Promise((resolve, reject) => {
-      let openRequest = indexedDB.open(this._schema.storage.name, this._schema.storage.version) // eslint-disable-line prefer-const
-
-      console.info('Starting to write data to database')
-      openRequest.onupgradeneeded = () => {
-        // This means that a database either does not exist or have incorrect
-        // TODO: add removal of previous database version objects
-        //       create a function to remove each previous version
-        console.info('onUpgradeNeeded has been called')
-        let db = openRequest.result // eslint-disable-line prefer-const
-
-        // Create store for metadata
-        db.createObjectStore(this._schema.storage.stores.meta.name, { autoIncrement: true }) // eslint-disable-line prefer-const
-
-        // Create store for dictionary entries
-        let dictStore = db.createObjectStore(this._schema.storage.stores.dictionary.name, { keyPath: 'index' }) // eslint-disable-line prefer-const
-        if (this._schema.storage.stores.dictionary.indexes) {
-          Object.values(this._schema.storage.stores.dictionary.indexes).forEach(idx => {
-            console.info('Creating an index for', idx)
-            dictStore.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
-          })
-        }
-      }
-
-      openRequest.onsuccess = () => {
-        /*
-        Upgrade has been completed or were not needed
-         */
-        console.info('dbOpen onSuccess has been called')
-        const startTime = Date.now()
-        let db = openRequest.result // eslint-disable-line prefer-const
-
-        let metaStoreTransaction = db.transaction(this._schema.storage.stores.meta.name, 'readwrite') // eslint-disable-line prefer-const
-        let metaStore = metaStoreTransaction.objectStore(this._schema.storage.stores.meta.name) // eslint-disable-line prefer-const
-
-        // Clear old data from a meta store before writing a new one
-        // Is this a subtransaction within a metaTransaction?
-        const metaClearTransaction = metaStore.clear()
-        metaClearTransaction.onsuccess = () => {
-          console.info('meta clear onSuccess')
-          console.info('writing cedict metadata')
-          metaStore.put(this.cedict.meta, 1)
-        }
-
-        /* metaClearTransaction.oncomplete = () => {
-          console.info('meta clear onComplete')
-        } */
-
-        metaStoreTransaction.oncomplete = () => {
-          console.info('meta onComplete has been called')
-          // Will be closed later. How to prevent race conditions?
-          // db.close()
-        }
-
-        /* metaStoreTransaction.onsuccess = () => {
-          console.info('meta onSuccess has been called')
-          // Will be closed later. How to prevent race conditions?
-          // db.close()
-        } */
-
-        // Store dictionary data
-        let dictWriteTransaction = db.transaction(this._schema.storage.stores.dictionary.name, 'readwrite') // eslint-disable-line prefer-const
-        let dictStore = dictWriteTransaction.objectStore(this._schema.storage.stores.dictionary.name) // eslint-disable-line prefer-const
-
-        // Clear old data from a dictionary store
-        // TODO: This callback takes too long: 8000 ms. Can we do anything about it?
-        const dictClearTransaction = dictStore.clear()
-        dictClearTransaction.onsuccess = () => {
-          console.info('dictionary clear onSuccess')
-
-          /*
-          Dictionary entries can be stored as either an array (if no in-memory indexes are created)
-          or as a map (if there are in-memory indexes).
-           */
-          const entriesArr = this.cedict.entries instanceof Map ? Array.from(this.cedict.entries.values()) : this.cedict.entries
-          entriesArr.forEach(entry => dictStore.put(entry))
-
-          dictWriteTransaction.oncomplete = () => {
-            console.info('dictionary write onComplete has been called')
-            // TODO: This is guaranteed to finish later than the metadata transaction. Is it reliable enough?
-            db.close()
-            console.info(`All dictionary data has been recorded, duration is ${Date.now() - startTime}`)
-            resolve()
-          }
-        }
-        console.info(`onSuccess has been finished (${Date.now() - startTime}) ms`)
-      }
-
-      openRequest.onerror = (error) => {
-        console.info('Onerror handler', error)
-      }
-
-      console.info('storeCedictData fallen through')
-    })
-  }
-
   /**
    * Loads a single JSON file from a specified URL and decodes it.
    *
@@ -412,7 +335,6 @@ export default class CedictData {
   }
 }
 
-// TODO: Shall probably move this to data models
 CedictData.characterForms = {
   SIMPLIFIED: 'simplified',
   TRADITIONAL: 'traditional'

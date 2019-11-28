@@ -2,13 +2,11 @@ import Store from '@lexisCs/cedict-service/store.js'
 
 export default class CedictStorage {
   constructor (schema) {
-    console.info(schema)
     CedictStorage.checkSchemaValidity(schema)
     this._schema = schema
     this._db = null
     this.stores = {}
     Object.values(this._schema.stores).forEach(schema => { this.stores[schema.name] = new Store(schema) })
-    console.info('CedictStorage has been created', this._schema, this.stores)
   }
 
   /**
@@ -28,7 +26,7 @@ export default class CedictStorage {
     return new Promise((resolve, reject) => {
       // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
       const openRequest = indexedDB.open(this._schema.name, this._schema.version) // eslint-disable-line prefer-const
-      openRequest.onupgradeneeded = this._create.bind(this, openRequest)
+      openRequest.onupgradeneeded = this.create.bind(this, openRequest)
 
       openRequest.onsuccess = () => {
         console.info('DB open on success')
@@ -55,10 +53,10 @@ export default class CedictStorage {
    * @param {IDBOpenDBRequest} openRequest - An open request that caused an onupgradeneeded event.
    * @param {Function} reject - A reject function for promise declared in `connect()`.
    */
-  _create (openRequest, reject) {
+  create (openRequest, reject) {
     console.info('DB open on upgrade needed (create)', openRequest)
     this._db = openRequest.result
-    const storeCreateRequests = Object.values(this.stores).map(store => { store.create(this._db) })
+    const storeCreateRequests = Object.values(this.stores).map(store => { store.associateWith(this._db).create() })
     return Promise.all(storeCreateRequests)
   }
 

@@ -18,8 +18,6 @@ const CedictDestinationConfig = {
 let cedictData
 
 const messageHandler = (request, responseFn) => {
-  console.info('A message handler')
-  let response
   if (!cedictData.isReady) {
     responseFn(ResponseMessage.Error(request, new Error('Uninitialized')))
     return
@@ -27,29 +25,31 @@ const messageHandler = (request, responseFn) => {
 
   if (request.body.getWords) {
     // This is a get words request
-    response = cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
-    responseFn(ResponseMessage.Success(request, response))
+    const startTime = Date.now()
+    cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
+      .then((result) => {
+        console.info(`Request processing completed in ${Date.now() - startTime} ms`)
+        responseFn(ResponseMessage.Success(request, result))
+      }).catch((error) => responseFn(ResponseMessage.Error(request, error)))
   } else {
     responseFn(ResponseMessage.Error(request, new Error('Unsupported request')))
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const service = new MessagingService(new Destination(Destination.config.CEDICT))
+  const service = new MessagingService(new Destination(CedictDestinationConfig))
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
   try {
     cedictData = new CedictData(CedictSchema)
   } catch (error) {
-    console.error(`Cannot create CEDICT data object: ${error}`)
+    console.error(error)
     return
   }
-  console.info('before init')
   cedictData.init().then(() => {
     // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
-  }).catch((error) => console.error(`Cannot initialize CEDICT data object: ${error}`))
-  console.info('after init')
+  }).catch((error) => console.error(error))
 })
 
 export default CedictDestinationConfig

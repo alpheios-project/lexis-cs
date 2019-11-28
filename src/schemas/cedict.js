@@ -5,15 +5,15 @@ const cedict = {
     stores: {
       meta: {
         name: 'meta',
-        version: 1
+        primaryIndex: {
+          auto: true
+        }
       },
       dictionary: {
         name: 'dictionary',
-        version: 1,
-        keyPath: 'index',
-        inMemoryData: true,
-        inMemoryIndexes: false,
-        permanentStorage: true,
+        primaryIndex: {
+          keyPath: 'index'
+        },
         indexes: {
           traditional: {
             name: 'traditionalHwIdx',
@@ -25,6 +25,15 @@ const cedict = {
             keyPath: 'simplifiedHeadword',
             unique: false
           }
+        },
+        volatileStorage: {
+          enabled: false,
+          indexed: true
+        },
+        permanentStorage: {
+          enabled: true,
+          // Searching within permanent storage with no indexes is currently not implemented
+          indexed: true
         }
       }
     }
