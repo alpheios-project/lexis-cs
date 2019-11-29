@@ -5,9 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config.mjs",
-    "build-dev": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config.mjs",
+    "test": "jest --coverage",
     "build-service-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config-service.mjs",
     "build-service-dev": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config-service.mjs",
     "lint": "eslint --fix ./src/**/*.js",
@@ -23,6 +21,24 @@
     "url": "https://github.com/alpheios-project/lexis-cs/issues"
   },
   "homepage": "https://github.com/alpheios-project/lexis-cs#readme",
+  "jest": {
+    "verbose": true,
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "transform": {
+      "^.+\\.[t|j]sx?$": "babel-jest"
+    },
+    "transformIgnorePatterns": [
+      "!node_modules/"
+    ],
+    "moduleNameMapper": {
+      "^@lexisCs[/](.+)": "<rootDir>/src/$1"
+    },
+    "moduleFileExtensions": [
+      "js"
+    ]
+  },
   "eslintConfig": {
     "extends": [
       "standard",
@@ -45,18 +61,21 @@
     "**/support"
   ],
   "devDependencies": {
-    "@babel/core": "^7.7.2",
+    "@babel/core": "^7.7.4",
+    "@babel/runtime": "^7.7.4",
     "alpheios-node-build": "github:alpheios-project/node-build",
     "babel-eslint": "^10.0.3",
-    "eslint": "^6.6.0",
+    "babel-jest": "^24.9.0",
+    "eslint": "^6.7.1",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.18.2",
-    "eslint-plugin-jsdoc": "^17.1.1",
+    "eslint-plugin-jsdoc": "^18.1.5",
     "eslint-plugin-node": "^10.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "eslint-plugin-vue": "^6.0.0",
+    "eslint-plugin-vue": "^6.0.1",
     "eslint-scope": "^5.0.0",
+    "jest": "^24.9.0",
     "terser": "4.3.4",
     "terser-webpack-plugin": "2.1.2",
     "webpack": "^4.41.2"

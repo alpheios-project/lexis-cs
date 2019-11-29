@@ -24,7 +24,7 @@ export default class ResponseMessage extends Message {
    * @param {RequestMessage} request - An original request.
    * @param {object} body - A body of response message.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
   static Success (request, body) {
     return new this(request, body, ResponseMessage.responseCodes.SUCCESS)
@@ -36,7 +36,7 @@ export default class ResponseMessage extends Message {
    * @param {RequestMessage} request - An original request.
    * @param {Error} error - An error object containing error information.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
   static Error (request, error) {
     return new this(request, error, ResponseMessage.responseCodes.ERROR)

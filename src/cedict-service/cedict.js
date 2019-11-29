@@ -113,7 +113,7 @@ export default class Cedict {
           ) {
             throw new Error('Store is outdated')
           }
-          console.info(`In-memory storage state is`, this.cedict)
+          console.info('In-memory storage state is', this.cedict)
           console.info('Configuration', this._configuration)
           // Data in storage is fresh so we can read it into memory structures if we have that option enabled
           this.cedict.meta = storageData.metadata
@@ -121,7 +121,7 @@ export default class Cedict {
             return this._storage.stores.dictionary.getAllEntries()
               .then((entries) => {
                 this.populateVolatileStorage(entries)
-                console.info(`In-memory storage state after data loading is`, this.cedict)
+                console.info('In-memory storage state after data loading is', this.cedict)
               }).catch((error) => reject(error))
           }
         })
@@ -205,7 +205,7 @@ export default class Cedict {
           } else {
             // Return records for a specified character set
             const result = {
-              [characterForm]: this._getWordsFromVolatileStorage(words, characterForm),
+              [characterForm]: this._getWordsFromVolatileStorage(words, characterForm)
             }
             console.info(`Request took ${Date.now() - startTime} ms`)
             resolve(result)

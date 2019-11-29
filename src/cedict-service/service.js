@@ -3,6 +3,7 @@ import ResponseMessage from '@lexisCs/messaging/messages/response-message.js'
 import Destination from '@lexisCs/messaging/destinations/window-iframe-destination.js'
 import Cedict from '@lexisCs/cedict-service/cedict.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
+const CedictCharacterForms = Cedict.characterForms
 
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
@@ -52,4 +53,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }).catch((error) => console.error(error))
 })
 
-export default CedictDestinationConfig
+export { CedictDestinationConfig, CedictCharacterForms }

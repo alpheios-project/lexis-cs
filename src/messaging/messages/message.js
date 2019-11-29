@@ -8,7 +8,7 @@ export default class Message {
   /**
    * @param {object} body - A plain JS object (with no methods) representing a body of the message.
    */
-  constructor (body) {
+  constructor (body = {}) {
     /**
      * A message's role (@see {@link Message.roles}). Will be defined in descendants.
      *
