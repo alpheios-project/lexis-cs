@@ -1,8 +1,8 @@
 import MessagingService from '@lexisCs/messaging/messaging-service.js'
 import ResponseMessage from '@lexisCs/messaging/messages/response-message.js'
 import Destination from '@lexisCs/messaging/destinations/window-iframe-destination.js'
-import CedictData from '@lexisCs/cedict-service/cedict-data.js'
-import CedictSchema from '@lexisCs/schemas/cedict.js'
+import Cedict from '@lexisCs/cedict-service/cedict.js'
+import CedictConfig from '@lexisCs/configurations/cedict.js'
 
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
   try {
-    cedictData = new CedictData(CedictSchema)
+    cedictData = new Cedict(CedictConfig)
   } catch (error) {
     console.error(error)
     return

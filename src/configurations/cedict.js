@@ -27,7 +27,7 @@ const cedict = {
           }
         },
         volatileStorage: {
-          enabled: false,
+          enabled: true,
           indexed: true
         },
         permanentStorage: {
