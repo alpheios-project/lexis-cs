@@ -1,7 +1,8 @@
 /**
  * @module ResponseMessage
  */
-import Message from './message.js'
+import Message from '@lexisCs/messaging/messages/message.js'
+import RequestMessage from '@lexisCs/messaging/messages/request-message.js'
 
 /** A response message that is sent as an answer to the request message. */
 export default class ResponseMessage extends Message {
@@ -12,9 +13,11 @@ export default class ResponseMessage extends Message {
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
     super(body)
+    if (!request) throw new Error('Request is not provided')
+    if (!request.ID) throw new Error('Request has no ID')
     this.role = Message.roles.RESPONSE
     this.requestHeader = request.header || {}
-    this.requestHeader.ID = request.ID // ID of the request to match request and response
+    this.requestID = request.ID // ID of the request to match request and response
     this.responseCode = responseCode
   }
 
@@ -26,7 +29,7 @@ export default class ResponseMessage extends Message {
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
    * @class
    */
-  static Success (request, body) {
+  static Success (request, body = {}) {
     return new this(request, body, ResponseMessage.responseCodes.SUCCESS)
   }
 
@@ -52,7 +55,7 @@ export default class ResponseMessage extends Message {
     return message.role &&
       message.role === Message.roles.RESPONSE &&
       message.requestHeader &&
-      message.requestHeader.ID
+      message.requestID
   }
 }
 

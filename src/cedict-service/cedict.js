@@ -116,11 +116,10 @@ export default class Cedict {
           console.info('In-memory storage state is', this.cedict)
           console.info('Configuration', this._configuration)
           // Data in storage is fresh so we can read it into memory structures if we have that option enabled
-          this.cedict.meta = storageData.metadata
           if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
             return this._storage.stores.dictionary.getAllEntries()
               .then((entries) => {
-                this.populateVolatileStorage(entries)
+                this.populateVolatileStorage(storageData.metadata, entries)
                 console.info('In-memory storage state after data loading is', this.cedict)
               }).catch((error) => reject(error))
           }

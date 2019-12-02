@@ -487,15 +487,14 @@ class Cedict {
           ) {
             throw new Error('Store is outdated')
           }
-          console.info(`In-memory storage state is`, this.cedict)
+          console.info('In-memory storage state is', this.cedict)
           console.info('Configuration', this._configuration)
           // Data in storage is fresh so we can read it into memory structures if we have that option enabled
-          this.cedict.meta = storageData.metadata
           if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
             return this._storage.stores.dictionary.getAllEntries()
               .then((entries) => {
-                this.populateVolatileStorage(entries)
-                console.info(`In-memory storage state after data loading is`, this.cedict)
+                this.populateVolatileStorage(storageData.metadata, entries)
+                console.info('In-memory storage state after data loading is', this.cedict)
               }).catch((error) => reject(error))
           }
         })
@@ -579,7 +578,7 @@ class Cedict {
           } else {
             // Return records for a specified character set
             const result = {
-              [characterForm]: this._getWordsFromVolatileStorage(words, characterForm),
+              [characterForm]: this._getWordsFromVolatileStorage(words, characterForm)
             }
             console.info(`Request took ${Date.now() - startTime} ms`)
             resolve(result)
@@ -1015,11 +1014,13 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
 /*!***************************************!*\
   !*** ./src/cedict-service/service.js ***!
   \***************************************/
-/*! exports provided: default */
+/*! exports provided: CedictDestinationConfig, CedictCharacterForms */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictDestinationConfig", function() { return CedictDestinationConfig; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictCharacterForms", function() { return CedictCharacterForms; });
 /* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
 /* harmony import */ var _lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/messages/response-message.js */ "./src/messaging/messages/response-message.js");
 /* harmony import */ var _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-iframe-destination.js */ "./src/messaging/destinations/window-iframe-destination.js");
@@ -1030,6 +1031,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+const CedictCharacterForms = _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3__["default"].characterForms
 
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
@@ -1079,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }).catch((error) => console.error(error))
 })
 
-/* harmony default export */ __webpack_exports__["default"] = (CedictDestinationConfig);
+
 
 
 /***/ }),
@@ -1615,7 +1617,7 @@ class Message {
   /**
    * @param {object} body - A plain JS object (with no methods) representing a body of the message.
    */
-  constructor (body) {
+  constructor (body = {}) {
     /**
      * A message's role (@see {@link Message.roles}). Will be defined in descendants.
      *
@@ -1664,6 +1666,43 @@ Message.types = {
 
 /***/ }),
 
+/***/ "./src/messaging/messages/request-message.js":
+/*!***************************************************!*\
+  !*** ./src/messaging/messages/request-message.js ***!
+  \***************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return RequestMessage; });
+/* harmony import */ var _message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./message.js */ "./src/messaging/messages/message.js");
+/**
+ * @module RequestMessage
+ */
+
+
+/** A request message */
+class RequestMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  /**
+   * @param {object} body - A plain JS object (with no methods) representing a body of the message.
+   */
+  constructor (body = {}) {
+    super(body)
+    this.role = _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.REQUEST
+
+    /**
+     * A message header. Will contain routing information usually.
+     *
+     * @type {object}
+     */
+    this.header = {}
+  }
+}
+
+
+/***/ }),
+
 /***/ "./src/messaging/messages/response-message.js":
 /*!****************************************************!*\
   !*** ./src/messaging/messages/response-message.js ***!
@@ -1674,14 +1713,16 @@ Message.types = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return ResponseMessage; });
-/* harmony import */ var _message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./message.js */ "./src/messaging/messages/message.js");
+/* harmony import */ var _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messages/message.js */ "./src/messaging/messages/message.js");
+/* harmony import */ var _lexisCs_messaging_messages_request_message_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/messages/request-message.js */ "./src/messaging/messages/request-message.js");
 /**
  * @module ResponseMessage
  */
 
 
+
 /** A response message that is sent as an answer to the request message. */
-class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class ResponseMessage extends _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
   /**
    * @param {RequestMessage} request - A request that initiated this response. Used to copy routing information mostly.
    * @param {object} body - A body of the response, a plain JS object with no methods.
@@ -1689,9 +1730,11 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
     super(body)
-    this.role = _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE
+    if (!request) throw new Error('Request is not provided')
+    if (!request.ID) throw new Error('Request has no ID')
+    this.role = _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE
     this.requestHeader = request.header || {}
-    this.requestHeader.ID = request.ID // ID of the request to match request and response
+    this.requestID = request.ID // ID of the request to match request and response
     this.responseCode = responseCode
   }
 
@@ -1701,7 +1744,7 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
    * @param {RequestMessage} request - An original request.
    * @param {object} body - A body of response message.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
   static Success (request, body) {
     return new this(request, body, ResponseMessage.responseCodes.SUCCESS)
@@ -1713,7 +1756,7 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
    * @param {RequestMessage} request - An original request.
    * @param {Error} error - An error object containing error information.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
   static Error (request, error) {
     return new this(request, error, ResponseMessage.responseCodes.ERROR)
@@ -1727,9 +1770,9 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
    */
   static isResponse (message) {
     return message.role &&
-      message.role === _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE &&
+      message.role === _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE &&
       message.requestHeader &&
-      message.requestHeader.ID
+      message.requestID
   }
 }
 
@@ -1830,11 +1873,11 @@ class MessagingService {
       return
     }
 
-    if (!this._messages.has(message.requestHeader.ID)) {
-      console.error(`Ignoring a message with request ID ${message.requestHeader.ID} not registered in a request list`, message)
+    if (!this._messages.has(message.requestID)) {
+      console.error(`Ignoring a message with request ID ${message.requestID} not registered in a request list`, message)
       return
     }
-    const requestInfo = this._messages.get(message.requestHeader.ID)
+    const requestInfo = this._messages.get(message.requestID)
     window.clearTimeout(requestInfo.timeoutID) // Clear a timeout
     const responseCode = message.responseCode
 
@@ -1845,7 +1888,7 @@ class MessagingService {
       // Request was processed without errors
       requestInfo.resolve(message)
     }
-    this._messages.delete(message.requestHeader.ID) // Remove request info from the map
+    this._messages.delete(message.requestID) // Remove request info from the map
   }
 
   /**
