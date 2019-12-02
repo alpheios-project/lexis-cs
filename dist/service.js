@@ -1435,7 +1435,7 @@ class Destination {
    *
    * @param {string} name - A name of a particular destination.
    */
-  constructor ({ name }) {
+  constructor (name) {
     if (!name) {
       throw new Error('Destination name is missing')
     }
@@ -1746,7 +1746,7 @@ class ResponseMessage extends _lexisCs_messaging_messages_message_js__WEBPACK_IM
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
    * @class
    */
-  static Success (request, body) {
+  static Success (request, body = {}) {
     return new this(request, body, ResponseMessage.responseCodes.SUCCESS)
   }
 
