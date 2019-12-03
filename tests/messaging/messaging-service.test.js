@@ -37,4 +37,36 @@ describe('MessagingService class', () => {
     expect(Array.from(messagingService._destinations.keys())).toMatchObject(['Destination one'])
     expect(Array.from(messagingService._destinations.values())).toMatchObject([destOne])
   })
+
+  it('registerDestination: add an existing one', () => {
+    const messagingService = new MessagingService()
+    expect(messagingService._destinations.size).toBe(0)
+    messagingService.registerDestination(destOne)
+    expect(() => messagingService.registerDestination(destOne)).toThrowError('Destination already exists')
+  })
+
+  it('updateDestination: destination exists', () => {
+    const destName = 'Destination one'
+    const destOneType = 'Destination one type'
+    const destOneUpdatedType = 'Destination one type updated'
+    const messagingService = new MessagingService()
+    expect(messagingService._destinations.size).toBe(0)
+    let destOne = new Destination({ name: destName }) // eslint-disable-line prefer-const
+    destOne.type = destOneType
+    let destOneUpdated = new Destination({ name: destName }) // eslint-disable-line prefer-const
+    destOneUpdated.type = destOneUpdatedType
+    messagingService.registerDestination(destOne)
+    expect(messagingService._destinations.get(destName).type).toBe(destOneType)
+    messagingService.updateDestination(destOneUpdated)
+    expect(messagingService._destinations.get(destName).type).toBe(destOneUpdatedType)
+  })
+
+  it('updateDestination: destination does not exist', () => {
+    const messagingService = new MessagingService()
+    expect(messagingService._destinations.size).toBe(0)
+    const destOne = new Destination({ name: 'Destination name' })
+    const destOneUpdated = new Destination({ name: 'A new destination name' })
+    messagingService.registerDestination(destOne)
+    expect(() => messagingService.updateDestination(destOneUpdated)).toThrowError('Cannot update a destination that does not exist')
+  })
 })
