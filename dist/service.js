@@ -427,6 +427,19 @@ class Cedict {
        */
       simplifiedHeadwordsIdx: null
     }
+
+    /*
+    If characterForm is not specified in the request we will search for records with the
+    preferred character form specified below first. If any results for that character form will be found,
+    only those ones will be returned to the client. If no results for the preferred character form
+    are in the dictionary then we will search for records with other character forms.
+     */
+    this.preferredCharacterForm = Cedict.characterForms.TRADITIONAL
+
+    /*
+    This is a character form we will fallback into if matches for the preferred one are not found.
+     */
+    this.fallbackCharacterForm = Cedict.characterForms.SIMPLIFIED
   }
 
   /**
@@ -499,7 +512,7 @@ class Cedict {
           }
         })
         .catch((error) => {
-          console.info('Integrity check failed, need to recreate a database', error)
+          console.info('Integrity check failed, need to recreate a database.', error)
           // Data in permanent storage needs to be updated
           console.info('Data needs to be updated')
           return this._storage.destroy()
@@ -513,6 +526,17 @@ class Cedict {
                 this.populateVolatileStorage(meta, dictionary)
               }
               return this.populatePermanentStorage(meta, dictionary)
+                .then(() => Promise.resolve())
+                .catch((error) => {
+                  console.error('Unable to store CEDICT data to IndexedDB.', error)
+                  // Cannot write CEDICT data to IndexedDB. Will fall back to an in-memory location
+                  if (!this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
+                    console.warn('Switched to in-memory placement of CEDICT data')
+                    this._configuration.storage.stores.dictionary.volatileStorage.enabled = true
+                    this.populateVolatileStorage(meta, dictionary)
+                  }
+                  return Promise.resolve()
+                })
             })
         })
         .catch((error) => {
@@ -533,7 +557,7 @@ class Cedict {
    * @param {Cedict.characterForms} characterForm - A string identifying a character form.
    * @returns {boolean} True if there is information on this form, false otherwise.
    */
-  static isKnownCharacterForm (characterForm) {
+  static isSupportedCharacterForm (characterForm) {
     return Array.from(Object.values(Cedict.characterForms)).includes(characterForm)
   }
 
@@ -551,96 +575,101 @@ class Cedict {
     // CedictData object is not prepared to serve this request
     if (!this.isReady) return Promise.reject(new Error('CEDICT data is not ready'))
 
-    let getAllCharacterForms = true
+    let characterFormIsNotKnown = true
     // If character form is not specified we will return all records for all character forms
     if (typeof characterForm !== 'undefined') {
       // Some value is provided for a characterForm
-      if (!Cedict.isKnownCharacterForm(characterForm)) return Promise.reject(new Error(`Unknown character form "${characterForm}"`))
-      getAllCharacterForms = false
+      if (!Cedict.isSupportedCharacterForm(characterForm)) return Promise.reject(new Error(`Unknown character form "${characterForm}"`))
+      characterFormIsNotKnown = false
     }
 
     // Nothing to do
     if (!words) return Promise.resolve({})
 
-    // Always prefer volatile storage to a permanent one
-    if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
-      return new Promise((resolve, reject) => {
-        try {
-          const startTime = Date.now()
-          if (getAllCharacterForms) {
-            // Return records for all known character forms
-            const result = {
-              [Cedict.characterForms.SIMPLIFIED]: this._getWordsFromVolatileStorage(words, Cedict.characterForms.SIMPLIFIED),
-              [Cedict.characterForms.TRADITIONAL]: this._getWordsFromVolatileStorage(words, Cedict.characterForms.TRADITIONAL)
+    // Decide wither word entries will be retrieved from memory or form a permanent storage
+    const getWordsFunct = this._configuration.storage.stores.dictionary.volatileStorage.enabled
+      ? this._getWordsFromVolatileStorage.bind(this)
+      : this._getWordsFromPermanentStorage.bind(this)
+
+    const startTime = Date.now()
+    return new Promise((resolve, reject) => {
+      if (characterFormIsNotKnown) {
+        // Search using preferred character form first
+        getWordsFunct(words, this.preferredCharacterForm)
+          .then((entries) => {
+            if (Cedict.getResultRecordsCount(entries) > 0) {
+              // There are matches with the preferred character form, we need to search no longer
+              console.info(`Request took ${Date.now() - startTime} ms`)
+              resolve({ [this.preferredCharacterForm]: entries })
+            } else {
+              // Search using fallback character form
+              return getWordsFunct(words, this.fallbackCharacterForm)
             }
+          })
+          .then((entries) => {
+            // Results for the fallback character form
+            const result = (Cedict.getResultRecordsCount(entries) > 0) ? { [this.fallbackCharacterForm]: entries } : {}
             console.info(`Request took ${Date.now() - startTime} ms`)
             resolve(result)
-          } else {
-            // Return records for a specified character set
-            const result = {
-              [characterForm]: this._getWordsFromVolatileStorage(words, characterForm)
-            }
-            console.info(`Request took ${Date.now() - startTime} ms`)
-            resolve(result)
-          }
-        } catch (error) {
-          reject(error)
-        }
-      })
-    } else {
-      // Use permanent storage
-      if (getAllCharacterForms) {
-        // Return records for all known character forms
-        const requests = [
-          this._getWordsFromPermanentStorage(words, Cedict.characterForms.SIMPLIFIED),
-          this._getWordsFromPermanentStorage(words, Cedict.characterForms.TRADITIONAL)
-        ]
-        return Promise.all(requests).then((results) => ({
-          [Cedict.characterForms.SIMPLIFIED]: results[0],
-          [Cedict.characterForms.TRADITIONAL]: results[1]
-        }))
+          })
+          .catch((error) => reject(error))
       } else {
         // Return records for a specified character set
-        return this._getWordsFromPermanentStorage(words, characterForm).then((result) => ({ [characterForm]: result }))
+        getWordsFunct(words, characterForm)
+          .then((entries) => {
+            const result = (Cedict.getResultRecordsCount(entries) > 0) ? { [characterForm]: entries } : {}
+            console.info(`Request took ${Date.now() - startTime} ms`)
+            resolve(result)
+          })
+          .catch((error) => reject(error))
       }
-    }
+    })
   }
 
   /**
    * Returns one or several records for given words from an in-memory storage.
+   * It returns a promise to make it signature compatible with other word retrieval functions.
    *
    * @param {[string]} words - An array of Chinese words.
    * @param {string} characterForm - A string constant that specifies
    *        a character form in words (simplified or traditional).
-   * @returns {object} - Returns an object whose keys are the words requested and values are arrays of CEDICT records
-   *          that has those words.
+   * @returns {Promise<object> | Promise<Error>} - Returns a promise that is resolved with an object
+   *          whose keys are the words requested and values are arrays of CEDICT records that has those words.
+   *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromVolatileStorage (words, characterForm) {
-    // If a single word value is provided, convert it into an array
-    if (!Array.isArray(words)) { words = [words] }
-    // Create an object with props for the words
-    let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
-    // Retrieve from memory
-    if (this._configuration.storage.stores.dictionary.volatileStorage.indexed) {
-      // Use in memory indexes to find values
-      words.forEach(word => {
-        const idx = (characterForm === Cedict.characterForms.SIMPLIFIED)
-          ? this.cedict.simplifiedHeadwordsIdx.get(word)
-          : this.cedict.traditionalHeadwordsIdx.get(word)
-        result[word] = idx ? idx.map(idx => this.cedict.dictionary.get(idx)) : []
-      })
-    } else {
-      // Indexes are not available, iterate over an array of values
-      this.cedict.dictionary.forEach(entry => {
-        const hw = (characterForm === Cedict.characterForms.SIMPLIFIED) ? entry.simplifiedHeadword : entry.traditionalHeadword
-        words.forEach(word => {
-          if (hw === word) {
-            result[word].push(entry)
-          }
-        })
-      })
-    }
-    return result
+    console.info('Retrieving data from volatile storage')
+    return new Promise((resolve, reject) => {
+      try {
+        // If a single word value is provided, convert it into an array
+        if (!Array.isArray(words)) { words = [words] }
+        // Create an object with props for the words
+        let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
+        // Retrieve from memory
+        if (this._configuration.storage.stores.dictionary.volatileStorage.indexed) {
+          // Use in memory indexes to find values
+          words.forEach(word => {
+            const idx = (characterForm === Cedict.characterForms.SIMPLIFIED)
+              ? this.cedict.simplifiedHeadwordsIdx.get(word)
+              : this.cedict.traditionalHeadwordsIdx.get(word)
+            result[word] = idx ? idx.map(idx => this.cedict.dictionary.get(idx)) : []
+          })
+        } else {
+          // Indexes are not available, iterate over an array of values
+          this.cedict.dictionary.forEach(entry => {
+            const hw = (characterForm === Cedict.characterForms.SIMPLIFIED) ? entry.simplifiedHeadword : entry.traditionalHeadword
+            words.forEach(word => {
+              if (hw === word) {
+                result[word].push(entry)
+              }
+            })
+          })
+        }
+        resolve(result)
+      } catch (error) {
+        reject(error)
+      }
+    })
   }
 
   /**
@@ -649,10 +678,12 @@ class Cedict {
    * @param {[string]} words - An array of Chinese words.
    * @param {string} characterForm - A string constant that specifies
    *        a character form in words (simplified or traditional).
-   * @returns {object} - Returns an object whose keys are the words requested and values are arrays of CEDICT records
-   *          that has those words.
+   * @returns {Promise<object> | Promise<Error>} - Returns a promise that is resolved with an object
+   *          whose keys are the words requested and values are arrays of CEDICT records that has those words.
+   *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromPermanentStorage (words, characterForm) {
+    console.info('Retrieving data from permanent storage')
     const index = (characterForm === Cedict.characterForms.SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
     return this._storage.stores.dictionary.getEntries(words, { index })
   }
@@ -738,6 +769,10 @@ class Cedict {
    */
   loadJson (url) {
     return fetch(url).then(response => response.json())
+  }
+
+  static getResultRecordsCount (resultsObject) {
+    return Object.values(resultsObject).flat().length
   }
 }
 
@@ -1354,22 +1389,48 @@ Store.accessModes = {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/*
+This object defines a configuration of a CEDICT service. We could have several configuration
+files each targeted for a specific platform or purpose.
+ */
 const cedict = {
+  /*
+  An information about how CEDICT data is stored within the CEDICT service.
+   */
   storage: {
     name: 'cedict',
+    /*
+    Version defines a configuration of a storage schema, e.g. what tables are used to store data,
+    what fields do they have, etc.
+     */
     version: 1,
     stores: {
+      /*
+      A store to keep metadata about a dictionary. It will have only one entry with the metadata object.
+       */
       meta: {
         name: 'meta',
         primaryIndex: {
           auto: true
         }
       },
+
+      /*
+      This is a store that keeps dictionary entries themselves.
+       */
       dictionary: {
         name: 'dictionary',
         primaryIndex: {
+          /*
+          What property of a dictionary entry will become a primary index.
+           */
           keyPath: 'index'
         },
+
+        /*
+        The following defines the secondary indexes. The name of an index is used to address it
+        during queries. keyPath defines what prop of a dictionary entry will be used to build an index.
+         */
         indexes: {
           traditional: {
             name: 'traditionalHwIdx',
@@ -1383,22 +1444,74 @@ const cedict = {
           }
         },
         volatileStorage: {
-          enabled: true,
-          indexed: true
+          /*
+          If volatile storage is disabled, all queries will run against an IndexedDB. This will minimize
+          RAM usage and is fast enough for most purposes (from several to tens of milliseconds). Enabling
+          volatile storage will place data into RAM and data will be retrieved faster at cost of a higher
+          RAM usage.
+           */
+          enabled: false,
+
+          /*
+          If volatile storage is indexed it will create additional in-memory maps to store headword indexes.
+          It will result in almost instantaneous retrieval of data at cost of a higher RAM usage.
+           */
+          indexed: false
         },
         permanentStorage: {
+          /*
+          With permanents storage enabled all CEDICT data will be saved into an IndexedDB and will stay there
+          between page reloads. This will allow not to download all CEDICT data each time the CEDICT service
+          is started. It will increase a service start time significantly (by tens of seconds, usually).It
+          will also spare several megabytes of network traffic.
+
+          With permanent storage enabled clients will be able to run searches directly against an IndexedDB
+          thus keeping RAM usage at a minimum.
+
+          It is highly recommended to have permanent storage always enabled except for cases when
+          a target device does not support it.
+           */
           enabled: true,
-          // Searching within permanent storage with no indexes is currently not implemented
+
+          /*
+          (Currently not implemented.)
+          Disabling permanent store indexes will slow searches down significantly (up to more than a second).
+          On the other hand, having indexes enabled to not increase IndexedDB size significantly.
+          Because of that it is recommended to always have this option on.
+           */
           indexed: true
         }
       }
     }
   },
+
+  /*
+  Describes CEDICT data on a remote server that is required to run the current version of CEDICT service.
+   */
   data: {
+    /*
+    The date when CEDICT data was last edited.
+     */
     version: 20191029,
+
+    /*
+    If data will be updated more than once a day revision will increment with each edition.
+     */
     revision: 1,
+
+    /*
+    Number of records in the current CEDICT edition. It is used for integrity checking.
+     */
     recordsCount: 117735,
+
+    /*
+    A URI where chunks of CEDICT data are located.
+     */
     URI: 'http://data-dev.alpheios.net/cedict',
+
+    /*
+    Names of the chunks themselves.
+     */
     chunks: [
       'cedict-v20191029-c001.json',
       'cedict-v20191029-c002.json',
@@ -1433,9 +1546,10 @@ class Destination {
    * Creates an instance of a Destination object. Descendants may take configuration parameters through
    * a second argument that they can define.
    *
-   * @param {string} name - A name of a particular destination.
+   * @param {object} configuration - A configuration object for a destination.
+   * @param {string} configuration.name - A name of a particular destination.
    */
-  constructor (name) {
+  constructor ({ name } = {}) {
     if (!name) {
       throw new Error('Destination name is missing')
     }
