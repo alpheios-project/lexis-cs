@@ -43,11 +43,9 @@ export default class IndexedDbStore extends Store {
   create () {
     return new Promise((resolve, reject) => {
       const options = this._configuration.primaryIndex.keyPath ? { keyPath: this._configuration.primaryIndex.keyPath } : undefined
-      console.info(`${this._configuration.name} store create`, options)
       const store = this._db.createObjectStore(this._configuration.name, options)
       if (this._configuration.indexes) {
         Object.values(this._configuration.indexes).forEach(idx => {
-          console.info('Creating an index for', idx)
           try {
             store.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
           } catch (error) {
@@ -124,7 +122,6 @@ export default class IndexedDbStore extends Store {
       const store = transaction.objectStore(this._configuration.name)
       // Create an object with keys as its props
       let result = keys.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
-      console.info('getEntries result is:', result)
       /*
       The order of request execution is guaranteed in IndexedDB.
       This means that when the last request is completed all previous requests are done too.
@@ -134,16 +131,12 @@ export default class IndexedDbStore extends Store {
         let getRequest
         if (index) {
           // Use index to retrieve a record
-          console.info(`Retrieving using a ${index} index`)
           const dbIndex = store.index(index)
           getRequest = dbIndex.getAll(IDBKeyRange.only(key))
         } else {
-          console.info('Retrieving without index')
           getRequest = store.getAll(IDBKeyRange.only(key))
         }
         getRequest.onsuccess = () => {
-          const records = getRequest.result
-          console.info(`(${i}) Records returned for ${key} key are:`, records)
           result[key] = getRequest.result
           if (i === keys.length - 1) {
             // A last request has been completed
@@ -151,9 +144,6 @@ export default class IndexedDbStore extends Store {
           }
         }
       }
-      // Transaction is completed later than `getRequest.onsuccess` is triggered
-      transaction.oncomplete = () => console.info('getAll transaction is complete')
-      transaction.onerror = (error) => { console.info('getAll transaction error'); reject(error) }
     })
   }
 
@@ -172,12 +162,9 @@ export default class IndexedDbStore extends Store {
       const getRequest = store.getAll()
       getRequest.onsuccess = () => {
         const records = getRequest.result
-        console.info('Records returned are:', records)
         resolve(records)
       }
-      // Transaction is completer later than `getRequest.onsuccess` is triggered
-      transaction.oncomplete = () => console.info('getAll transaction is complete')
-      transaction.onerror = (error) => { console.info('getAll transaction error'); reject(error) }
+      transaction.onerror = (error) => { reject(error) }
     })
   }
 

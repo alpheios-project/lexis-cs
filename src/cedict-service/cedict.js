@@ -108,12 +108,8 @@ export default class Cedict {
           console.error('Connection to storage cannot be established')
           reject(error)
         })
-        .then(() => {
-          console.info('Connection was established')
-          return this._storage.getIntergrityData()
-        })
+        .then(() => this._storage.getIntergrityData())
         .then((storageData) => {
-          console.info('Check integrity returned', storageData)
           /*
           Integrity data has been returned successfully which means database structure is OK.
           Let's check if there is a new version of data available on a server.
@@ -124,30 +120,22 @@ export default class Cedict {
             storageData.metadata.version !== this._configuration.data.version ||
             storageData.metadata.revision !== this._configuration.data.revision
           ) {
-            throw new Error('Store is outdated')
+            throw new Error('Storage is outdated')
           }
-          console.info('In-memory storage state is', this.cedict)
-          console.info('Configuration', this._configuration)
           // Data in storage is fresh so we can read it into memory structures if we have that option enabled
           if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
             return this._storage.stores.dictionary.getAllEntries()
-              .then((entries) => {
-                this.populateVolatileStorage(storageData.metadata, entries)
-                console.info('In-memory storage state after data loading is', this.cedict)
-              }).catch((error) => reject(error))
+              .then((entries) => this.populateVolatileStorage(storageData.metadata, entries))
+              .catch((error) => reject(error))
           }
         })
-        .catch((error) => {
-          console.info('Integrity check failed, need to recreate a database.', error)
+        .catch(() => {
           // Data in permanent storage needs to be updated
-          console.info('Data needs to be updated')
           return this._storage.destroy()
-          // `connect()` will create storage and stores
+            // `connect()` will create storage and stores
             .then(() => this._storage.connect())
             .then(() => this.downloadData())
             .then(({ meta, dictionary }) => {
-              console.info('Downloaded the following data: ', meta, dictionary)
-              console.info('Configuration', this._configuration)
               if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
                 this.populateVolatileStorage(meta, dictionary)
               }
@@ -165,13 +153,9 @@ export default class Cedict {
                 })
             })
         })
-        .catch((error) => {
-          console.info('Cannot download data from server', error)
-          reject(error)
-        })
+        .catch((error) => reject(error))
         .then(() => {
           this.isReady = true
-          console.info('Initialization is completed', this.cedict)
           resolve()
         })
     })
@@ -217,7 +201,6 @@ export default class Cedict {
       ? this._getWordsFromVolatileStorage.bind(this)
       : this._getWordsFromPermanentStorage.bind(this)
 
-    const startTime = Date.now()
     return new Promise((resolve, reject) => {
       if (characterFormIsNotKnown) {
         // Search using preferred character form first
@@ -225,7 +208,6 @@ export default class Cedict {
           .then((entries) => {
             if (Cedict.getResultRecordsCount(entries) > 0) {
               // There are matches with the preferred character form, we need to search no longer
-              console.info(`Request took ${Date.now() - startTime} ms`)
               resolve({ [this.preferredCharacterForm]: entries })
             } else {
               // Search using fallback character form
@@ -235,7 +217,6 @@ export default class Cedict {
           .then((entries) => {
             // Results for the fallback character form
             const result = (Cedict.getResultRecordsCount(entries) > 0) ? { [this.fallbackCharacterForm]: entries } : {}
-            console.info(`Request took ${Date.now() - startTime} ms`)
             resolve(result)
           })
           .catch((error) => reject(error))
@@ -244,7 +225,6 @@ export default class Cedict {
         getWordsFunct(words, characterForm)
           .then((entries) => {
             const result = (Cedict.getResultRecordsCount(entries) > 0) ? { [characterForm]: entries } : {}
-            console.info(`Request took ${Date.now() - startTime} ms`)
             resolve(result)
           })
           .catch((error) => reject(error))
@@ -264,7 +244,6 @@ export default class Cedict {
    *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromVolatileStorage (words, characterForm) {
-    console.info('Retrieving data from volatile storage')
     return new Promise((resolve, reject) => {
       try {
         // If a single word value is provided, convert it into an array
@@ -309,7 +288,6 @@ export default class Cedict {
    *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromPermanentStorage (words, characterForm) {
-    console.info('Retrieving data from permanent storage')
     const index = (characterForm === Cedict.characterForms.SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
     return this._storage.stores.dictionary.getEntries(words, { index })
   }
@@ -323,7 +301,6 @@ export default class Cedict {
   downloadData () {
     const requests = this._configuration.data.chunks.map(chunk => this.loadJson(`${this._configuration.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
-      console.info('All chunks are loaded')
       let meta = chunks[0].metadata // eslint-disable-line prefer-const
       delete this.cedict.meta.chunkNumber
       return { meta, dictionary: chunks.map(piece => piece.entries).flat() }
@@ -381,7 +358,6 @@ export default class Cedict {
     Only the use of `update` allow to specify an index for the record.
      */
     const metaUpdate = this._storage.stores.meta.update([this.cedict.metaKey, meta])
-    console.info(`Write to storage, number of records is ${dictionary.length}`)
     const dictionaryUpdate = this._storage.stores.dictionary.insert(dictionary)
     return Promise.all([metaUpdate, dictionaryUpdate])
   }

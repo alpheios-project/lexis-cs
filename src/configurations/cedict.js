@@ -1,6 +1,7 @@
 /*
 This object defines a configuration of a CEDICT service. We could have several configuration
-files each targeted for a specific platform or purpose.
+files each targeted for a specific platform or purpose and specify a proper configuration
+upon the service initialization.
  */
 const cedict = {
   /*

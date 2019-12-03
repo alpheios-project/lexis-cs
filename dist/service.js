@@ -268,7 +268,6 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    *          in `meta` and `dictionary` stores.
    */
   getIntergrityData () {
-    console.info('Checking a database integrity')
     let integrityRequests
     try {
       integrityRequests = [this.stores.meta, this.stores.dictionary].map(store => store.count()) // eslint-disable-line prefer-const
@@ -294,7 +293,6 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    *                    is rejected otherwise.
    */
   create (openRequest, reject) {
-    console.info('DB open on upgrade needed (create)', openRequest)
     this._db = openRequest.result
     const storeCreateRequests = Object.values(this.stores).map(store => { store.associateWith(this._db).create() })
     return Promise.all(storeCreateRequests)
@@ -307,12 +305,10 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    *          and all stores were destroyed successfully or is rejected if operations fails.
    */
   destroy () {
-    console.info('destory is called')
     return new Promise((resolve, reject) => {
       this.disconnect().then(() => {
-        console.info('Destory after diconnect', this._configuration.name)
         const deleteRequest = indexedDB.deleteDatabase(this._configuration.name)
-        deleteRequest.onsuccess = () => { console.info('database has been destroyed'); resolve() }
+        deleteRequest.onsuccess = () => { resolve() }
         deleteRequest.onerror = () => { reject(new Error('Storage cannot be destroyed')) }
       })
     })
@@ -325,22 +321,18 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    *          established successfully or is rejected if connection fails.
    */
   connect () {
-    console.info('connect has been called')
     return new Promise((resolve, reject) => {
       // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
       const openRequest = indexedDB.open(this._configuration.name, this._configuration.version) // eslint-disable-line prefer-const
-      console.info('before onupgradeneeded')
       openRequest.onupgradeneeded = this.create.bind(this, openRequest)
-      console.info('after onupgradeneeded')
 
       openRequest.onsuccess = () => {
-        console.info('DB open on success')
         this._db = openRequest.result
         Object.values(this.stores).forEach((store) => store.associateWith(this._db))
         resolve()
       }
 
-      openRequest.onerror = (error) => { console.info('dbopen onerror'); reject(error) }
+      openRequest.onerror = (error) => { reject(error) }
     })
   }
 
@@ -350,7 +342,6 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    * @returns {Promise<undefined>} Always returns a resolved promise.
    */
   disconnect () {
-    console.info('disconnect has been called')
     if (this._db) {
       this._db.close()
     }
@@ -482,12 +473,8 @@ class Cedict {
           console.error('Connection to storage cannot be established')
           reject(error)
         })
-        .then(() => {
-          console.info('Connection was established')
-          return this._storage.getIntergrityData()
-        })
+        .then(() => this._storage.getIntergrityData())
         .then((storageData) => {
-          console.info('Check integrity returned', storageData)
           /*
           Integrity data has been returned successfully which means database structure is OK.
           Let's check if there is a new version of data available on a server.
@@ -498,30 +485,22 @@ class Cedict {
             storageData.metadata.version !== this._configuration.data.version ||
             storageData.metadata.revision !== this._configuration.data.revision
           ) {
-            throw new Error('Store is outdated')
+            throw new Error('Storage is outdated')
           }
-          console.info('In-memory storage state is', this.cedict)
-          console.info('Configuration', this._configuration)
           // Data in storage is fresh so we can read it into memory structures if we have that option enabled
           if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
             return this._storage.stores.dictionary.getAllEntries()
-              .then((entries) => {
-                this.populateVolatileStorage(storageData.metadata, entries)
-                console.info('In-memory storage state after data loading is', this.cedict)
-              }).catch((error) => reject(error))
+              .then((entries) => this.populateVolatileStorage(storageData.metadata, entries))
+              .catch((error) => reject(error))
           }
         })
-        .catch((error) => {
-          console.info('Integrity check failed, need to recreate a database.', error)
+        .catch(() => {
           // Data in permanent storage needs to be updated
-          console.info('Data needs to be updated')
           return this._storage.destroy()
-          // `connect()` will create storage and stores
+            // `connect()` will create storage and stores
             .then(() => this._storage.connect())
             .then(() => this.downloadData())
             .then(({ meta, dictionary }) => {
-              console.info('Downloaded the following data: ', meta, dictionary)
-              console.info('Configuration', this._configuration)
               if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
                 this.populateVolatileStorage(meta, dictionary)
               }
@@ -539,13 +518,9 @@ class Cedict {
                 })
             })
         })
-        .catch((error) => {
-          console.info('Cannot download data from server', error)
-          reject(error)
-        })
+        .catch((error) => reject(error))
         .then(() => {
           this.isReady = true
-          console.info('Initialization is completed', this.cedict)
           resolve()
         })
     })
@@ -591,7 +566,6 @@ class Cedict {
       ? this._getWordsFromVolatileStorage.bind(this)
       : this._getWordsFromPermanentStorage.bind(this)
 
-    const startTime = Date.now()
     return new Promise((resolve, reject) => {
       if (characterFormIsNotKnown) {
         // Search using preferred character form first
@@ -599,7 +573,6 @@ class Cedict {
           .then((entries) => {
             if (Cedict.getResultRecordsCount(entries) > 0) {
               // There are matches with the preferred character form, we need to search no longer
-              console.info(`Request took ${Date.now() - startTime} ms`)
               resolve({ [this.preferredCharacterForm]: entries })
             } else {
               // Search using fallback character form
@@ -609,7 +582,6 @@ class Cedict {
           .then((entries) => {
             // Results for the fallback character form
             const result = (Cedict.getResultRecordsCount(entries) > 0) ? { [this.fallbackCharacterForm]: entries } : {}
-            console.info(`Request took ${Date.now() - startTime} ms`)
             resolve(result)
           })
           .catch((error) => reject(error))
@@ -618,7 +590,6 @@ class Cedict {
         getWordsFunct(words, characterForm)
           .then((entries) => {
             const result = (Cedict.getResultRecordsCount(entries) > 0) ? { [characterForm]: entries } : {}
-            console.info(`Request took ${Date.now() - startTime} ms`)
             resolve(result)
           })
           .catch((error) => reject(error))
@@ -638,7 +609,6 @@ class Cedict {
    *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromVolatileStorage (words, characterForm) {
-    console.info('Retrieving data from volatile storage')
     return new Promise((resolve, reject) => {
       try {
         // If a single word value is provided, convert it into an array
@@ -683,7 +653,6 @@ class Cedict {
    *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromPermanentStorage (words, characterForm) {
-    console.info('Retrieving data from permanent storage')
     const index = (characterForm === Cedict.characterForms.SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
     return this._storage.stores.dictionary.getEntries(words, { index })
   }
@@ -697,7 +666,6 @@ class Cedict {
   downloadData () {
     const requests = this._configuration.data.chunks.map(chunk => this.loadJson(`${this._configuration.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
-      console.info('All chunks are loaded')
       let meta = chunks[0].metadata // eslint-disable-line prefer-const
       delete this.cedict.meta.chunkNumber
       return { meta, dictionary: chunks.map(piece => piece.entries).flat() }
@@ -755,7 +723,6 @@ class Cedict {
     Only the use of `update` allow to specify an index for the record.
      */
     const metaUpdate = this._storage.stores.meta.update([this.cedict.metaKey, meta])
-    console.info(`Write to storage, number of records is ${dictionary.length}`)
     const dictionaryUpdate = this._storage.stores.dictionary.insert(dictionary)
     return Promise.all([metaUpdate, dictionaryUpdate])
   }
@@ -845,11 +812,9 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
   create () {
     return new Promise((resolve, reject) => {
       const options = this._configuration.primaryIndex.keyPath ? { keyPath: this._configuration.primaryIndex.keyPath } : undefined
-      console.info(`${this._configuration.name} store create`, options)
       const store = this._db.createObjectStore(this._configuration.name, options)
       if (this._configuration.indexes) {
         Object.values(this._configuration.indexes).forEach(idx => {
-          console.info('Creating an index for', idx)
           try {
             store.createIndex(idx.name, idx.keyPath, { unique: idx.unique })
           } catch (error) {
@@ -926,7 +891,6 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
       const store = transaction.objectStore(this._configuration.name)
       // Create an object with keys as its props
       let result = keys.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
-      console.info('getEntries result is:', result)
       /*
       The order of request execution is guaranteed in IndexedDB.
       This means that when the last request is completed all previous requests are done too.
@@ -936,16 +900,12 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
         let getRequest
         if (index) {
           // Use index to retrieve a record
-          console.info(`Retrieving using a ${index} index`)
           const dbIndex = store.index(index)
           getRequest = dbIndex.getAll(IDBKeyRange.only(key))
         } else {
-          console.info('Retrieving without index')
           getRequest = store.getAll(IDBKeyRange.only(key))
         }
         getRequest.onsuccess = () => {
-          const records = getRequest.result
-          console.info(`(${i}) Records returned for ${key} key are:`, records)
           result[key] = getRequest.result
           if (i === keys.length - 1) {
             // A last request has been completed
@@ -953,9 +913,6 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
           }
         }
       }
-      // Transaction is completed later than `getRequest.onsuccess` is triggered
-      transaction.oncomplete = () => console.info('getAll transaction is complete')
-      transaction.onerror = (error) => { console.info('getAll transaction error'); reject(error) }
     })
   }
 
@@ -974,12 +931,9 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
       const getRequest = store.getAll()
       getRequest.onsuccess = () => {
         const records = getRequest.result
-        console.info('Records returned are:', records)
         resolve(records)
       }
-      // Transaction is completer later than `getRequest.onsuccess` is triggered
-      transaction.oncomplete = () => console.info('getAll transaction is complete')
-      transaction.onerror = (error) => { console.info('getAll transaction error'); reject(error) }
+      transaction.onerror = (error) => { reject(error) }
     })
   }
 
@@ -1081,6 +1035,39 @@ const CedictDestinationConfig = {
 
 let cedictData
 
+/*
+NOTE: The request/response format described below is temporary and will change in phase three.
+After discussion we decided to add more flexibility for the client in specifying what data it wants to get back.
+
+CEDICT service receive request in the following format:
+{
+  getWords: {
+    words: words,
+    characterForm: characterForm
+  }
+}, where:
+  getWords is a type of incoming request;
+  words contains an array of words to retrieve;
+  characterForm specifies a Chinese character form that will be used during lookups.
+  If character form is not known, it can be omitted. In that case CEDICT service will
+  check records for traditional Chinese first and, if any matches are found, will return it back.
+  If nothing is found within a traditional Chinese, it will look in a simplified one.
+  Results for only one character form or no results at all, if no matches are found, will be returned.
+
+Results will be returned in the following format.
+
+If any matches are found:
+{
+    characterForm: {
+        word1: [array of records],
+        word2: [an empty array if no records are found for this word]
+    }
+}
+
+If no matches are found an empty object will be returned:
+{}
+ */
+
 const messageHandler = (request, responseFn) => {
   if (!cedictData.isReady) {
     responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Uninitialized')))
@@ -1089,10 +1076,8 @@ const messageHandler = (request, responseFn) => {
 
   if (request.body.getWords) {
     // This is a get words request
-    const startTime = Date.now()
     cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
       .then((result) => {
-        console.info(`Request processing completed in ${Date.now() - startTime} ms`)
         responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Success(request, result))
       }).catch((error) => responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, error)))
   } else {
@@ -1391,7 +1376,8 @@ Store.accessModes = {
 __webpack_require__.r(__webpack_exports__);
 /*
 This object defines a configuration of a CEDICT service. We could have several configuration
-files each targeted for a specific platform or purpose.
+files each targeted for a specific platform or purpose and specify a proper configuration
+upon the service initialization.
  */
 const cedict = {
   /*

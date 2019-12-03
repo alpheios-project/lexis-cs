@@ -38,7 +38,6 @@ export default class CedictPermanentStorage extends Storage {
    *          in `meta` and `dictionary` stores.
    */
   getIntergrityData () {
-    console.info('Checking a database integrity')
     let integrityRequests
     try {
       integrityRequests = [this.stores.meta, this.stores.dictionary].map(store => store.count()) // eslint-disable-line prefer-const
@@ -64,7 +63,6 @@ export default class CedictPermanentStorage extends Storage {
    *                    is rejected otherwise.
    */
   create (openRequest, reject) {
-    console.info('DB open on upgrade needed (create)', openRequest)
     this._db = openRequest.result
     const storeCreateRequests = Object.values(this.stores).map(store => { store.associateWith(this._db).create() })
     return Promise.all(storeCreateRequests)
@@ -77,12 +75,10 @@ export default class CedictPermanentStorage extends Storage {
    *          and all stores were destroyed successfully or is rejected if operations fails.
    */
   destroy () {
-    console.info('destory is called')
     return new Promise((resolve, reject) => {
       this.disconnect().then(() => {
-        console.info('Destory after diconnect', this._configuration.name)
         const deleteRequest = indexedDB.deleteDatabase(this._configuration.name)
-        deleteRequest.onsuccess = () => { console.info('database has been destroyed'); resolve() }
+        deleteRequest.onsuccess = () => { resolve() }
         deleteRequest.onerror = () => { reject(new Error('Storage cannot be destroyed')) }
       })
     })
@@ -95,22 +91,18 @@ export default class CedictPermanentStorage extends Storage {
    *          established successfully or is rejected if connection fails.
    */
   connect () {
-    console.info('connect has been called')
     return new Promise((resolve, reject) => {
       // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
       const openRequest = indexedDB.open(this._configuration.name, this._configuration.version) // eslint-disable-line prefer-const
-      console.info('before onupgradeneeded')
       openRequest.onupgradeneeded = this.create.bind(this, openRequest)
-      console.info('after onupgradeneeded')
 
       openRequest.onsuccess = () => {
-        console.info('DB open on success')
         this._db = openRequest.result
         Object.values(this.stores).forEach((store) => store.associateWith(this._db))
         resolve()
       }
 
-      openRequest.onerror = (error) => { console.info('dbopen onerror'); reject(error) }
+      openRequest.onerror = (error) => { reject(error) }
     })
   }
 
@@ -120,7 +112,6 @@ export default class CedictPermanentStorage extends Storage {
    * @returns {Promise<undefined>} Always returns a resolved promise.
    */
   disconnect () {
-    console.info('disconnect has been called')
     if (this._db) {
       this._db.close()
     }
