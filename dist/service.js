@@ -259,7 +259,8 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
   }
 
   /**
-   * Returns information to verify storage integrity.
+   * Returns information to verify storage integrity. Integrity data is specific for each particular
+   * storage type.
    *
    * @returns {Promise<{metadata: {object}, recordsInMeta: {number}, recordsInDictionary: {number}}>|Promise<Error>}
    *          Returns a promise that is resolved an object with storage integrity data or is rejected
@@ -474,23 +475,18 @@ class Cedict {
           reject(error)
         })
         .then(() => this._storage.getIntergrityData())
-        .then((storageData) => {
+        .then((integrityData) => {
           /*
           Integrity data has been returned successfully which means database structure is OK.
           Let's check if there is a new version of data available on a server.
            */
-          if (
-            storageData.recordsInMeta !== 1 ||
-            storageData.recordsInDictionary !== this._configuration.data.recordsCount ||
-            storageData.metadata.version !== this._configuration.data.version ||
-            storageData.metadata.revision !== this._configuration.data.revision
-          ) {
+          if (!this.isStorageIntact(integrityData)) {
             throw new Error('Storage is outdated')
           }
           // Data in storage is fresh so we can read it into memory structures if we have that option enabled
           if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
             return this._storage.stores.dictionary.getAllEntries()
-              .then((entries) => this.populateVolatileStorage(storageData.metadata, entries))
+              .then((entries) => this.populateVolatileStorage(integrityData.metadata, entries))
               .catch((error) => reject(error))
           }
         })
@@ -504,6 +500,7 @@ class Cedict {
               if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
                 this.populateVolatileStorage(meta, dictionary)
               }
+              // Even if permanent storage is disabled we will still populate in order to avoid downloading data again
               return this.populatePermanentStorage(meta, dictionary)
                 .then(() => Promise.resolve())
                 .catch((error) => {
@@ -537,6 +534,21 @@ class Cedict {
   }
 
   /**
+   * Verifies whether data in a storage is OK by checking its integrity information.
+   *
+   * @param {object} integrityData - A JSON-like object containing a storage integrity data.
+   * @returns {boolean} True if storage is intact and false otherwise.
+   */
+  isStorageIntact (integrityData) {
+    return (
+      integrityData.recordsInMeta === 1 &&
+      integrityData.recordsInDictionary === this._configuration.data.recordsCount &&
+      integrityData.metadata.version === this._configuration.data.version &&
+      integrityData.metadata.revision === this._configuration.data.revision
+    )
+  }
+
+  /**
    * Returns one or several records from CEDICT dictionary for one or several Chinese words.
    *
    * @param {[string]} words - An array of Chinese words.
@@ -561,22 +573,22 @@ class Cedict {
     // Nothing to do
     if (!words) return Promise.resolve({})
 
-    // Decide wither word entries will be retrieved from memory or form a permanent storage
-    const getWordsFunct = this._configuration.storage.stores.dictionary.volatileStorage.enabled
+    // Decide whether word entries will be retrieved from memory or form a permanent storage
+    const getWordsFunc = this._configuration.storage.stores.dictionary.volatileStorage.enabled
       ? this._getWordsFromVolatileStorage.bind(this)
       : this._getWordsFromPermanentStorage.bind(this)
 
     return new Promise((resolve, reject) => {
       if (characterFormIsNotKnown) {
         // Search using preferred character form first
-        getWordsFunct(words, this.preferredCharacterForm)
+        getWordsFunc(words, this.preferredCharacterForm)
           .then((entries) => {
             if (Cedict.getResultRecordsCount(entries) > 0) {
               // There are matches with the preferred character form, we need to search no longer
               resolve({ [this.preferredCharacterForm]: entries })
             } else {
               // Search using fallback character form
-              return getWordsFunct(words, this.fallbackCharacterForm)
+              return getWordsFunc(words, this.fallbackCharacterForm)
             }
           })
           .then((entries) => {
@@ -587,7 +599,7 @@ class Cedict {
           .catch((error) => reject(error))
       } else {
         // Return records for a specified character set
-        getWordsFunct(words, characterForm)
+        getWordsFunc(words, characterForm)
           .then((entries) => {
             const result = (Cedict.getResultRecordsCount(entries) > 0) ? { [characterForm]: entries } : {}
             resolve(result)
@@ -1185,6 +1197,20 @@ class Storage {
       resolve()
     })
   }
+
+  /**
+   * Returns information to verify storage integrity. A set of integrity data is specific for each particular
+   * storage type so each storage implementation must define this function on its own.
+   *
+   * @returns {Promise<{object}>|Promise<Error>}
+   *          Returns a promise that is resolved with an object with storage integrity information or is rejected
+   *          if storage integrity is broken.
+   */
+  getIntergrityData () {
+    return new Promise((resolve) => {
+      resolve({})
+    })
+  }
 }
 
 
@@ -1448,7 +1474,7 @@ const cedict = {
           /*
           With permanents storage enabled all CEDICT data will be saved into an IndexedDB and will stay there
           between page reloads. This will allow not to download all CEDICT data each time the CEDICT service
-          is started. It will increase a service start time significantly (by tens of seconds, usually).It
+          is started. It will decrease a service start time significantly (by tens of seconds, usually).It
           will also spare several megabytes of network traffic.
 
           With permanent storage enabled clients will be able to run searches directly against an IndexedDB
@@ -1456,6 +1482,9 @@ const cedict = {
 
           It is highly recommended to have permanent storage always enabled except for cases when
           a target device does not support it.
+
+          Please note: even if permanent storage is disabled, it will still be created in order to
+          put downloaded data into it and to avoid downloading it again with each service initialization.
            */
           enabled: true,
 

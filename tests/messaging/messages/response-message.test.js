@@ -211,7 +211,7 @@ describe('ResponseMessage class', () => {
     expect(msgOne.ID).not.toBe(msgTwo.ID)
   })
 
-  it('Error: responseCode is SUCCESS', () => {
+  it('Error: responseCode is ERROR', () => {
     const msg = ResponseMessage.Error(requestMessage)
     expect(msg.responseCode).toBe(ResponseMessage.responseCodes.ERROR)
   })

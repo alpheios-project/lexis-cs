@@ -67,4 +67,18 @@ export default class Storage {
       resolve()
     })
   }
+
+  /**
+   * Returns information to verify storage integrity. A set of integrity data is specific for each particular
+   * storage type so each storage implementation must define this function on its own.
+   *
+   * @returns {Promise<{object}>|Promise<Error>}
+   *          Returns a promise that is resolved with an object with storage integrity information or is rejected
+   *          if storage integrity is broken.
+   */
+  getIntergrityData () {
+    return new Promise((resolve) => {
+      resolve({})
+    })
+  }
 }

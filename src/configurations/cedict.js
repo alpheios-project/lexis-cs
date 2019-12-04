@@ -72,7 +72,7 @@ const cedict = {
           /*
           With permanents storage enabled all CEDICT data will be saved into an IndexedDB and will stay there
           between page reloads. This will allow not to download all CEDICT data each time the CEDICT service
-          is started. It will increase a service start time significantly (by tens of seconds, usually).It
+          is started. It will decrease a service start time significantly (by tens of seconds, usually).It
           will also spare several megabytes of network traffic.
 
           With permanent storage enabled clients will be able to run searches directly against an IndexedDB
@@ -80,6 +80,9 @@ const cedict = {
 
           It is highly recommended to have permanent storage always enabled except for cases when
           a target device does not support it.
+
+          Please note: even if permanent storage is disabled, it will still be created in order to
+          put downloaded data into it and to avoid downloading it again with each service initialization.
            */
           enabled: true,
 

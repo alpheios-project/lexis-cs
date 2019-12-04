@@ -29,7 +29,8 @@ export default class CedictPermanentStorage extends Storage {
   }
 
   /**
-   * Returns information to verify storage integrity.
+   * Returns information to verify storage integrity. Integrity data is specific for each particular
+   * storage type.
    *
    * @returns {Promise<{metadata: {object}, recordsInMeta: {number}, recordsInDictionary: {number}}>|Promise<Error>}
    *          Returns a promise that is resolved an object with storage integrity data or is rejected
