@@ -847,10 +847,10 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
   clear () {
     return new Promise((resolve, reject) => {
       let transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ_WRITE) // eslint-disable-line prefer-const
+      transaction.onerror = (event) => reject(event)
       let objectStore = transaction.objectStore(this._configuration.name) // eslint-disable-line prefer-const
       let clearRequest = objectStore.clear() // eslint-disable-line prefer-const
       clearRequest.onsuccess = () => resolve()
-      transaction.onerror = (event) => reject(event)
     })
   }
 
@@ -939,13 +939,13 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
     return new Promise((resolve, reject) => {
       if (!this._db) reject(new Error('Database object is missing'))
       const transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ)
+      transaction.onerror = (error) => { reject(error) }
       const store = transaction.objectStore(this._configuration.name)
       const getRequest = store.getAll()
       getRequest.onsuccess = () => {
         const records = getRequest.result
         resolve(records)
       }
-      transaction.onerror = (error) => { reject(error) }
     })
   }
 
@@ -962,10 +962,10 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
       if (!this._db) reject(new Error('Database object is missing'))
       if (!Array.isArray(records)) { records = [records] }
       let transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ_WRITE) // eslint-disable-line prefer-const
-      const store = transaction.objectStore(this._configuration.name)
-      records.forEach(record => store.put(record))
       transaction.oncomplete = () => resolve()
       transaction.onerror = (error) => reject(error)
+      const store = transaction.objectStore(this._configuration.name)
+      records.forEach(record => store.put(record))
     })
   }
 
@@ -984,10 +984,10 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
       if (!Array.isArray(keyValRecordsArr[0])) { keyValRecordsArr = [keyValRecordsArr] }
       if (!this._db) reject(new Error('Database object is missing'))
       const transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ_WRITE)
-      const store = transaction.objectStore(this._configuration.name)
-      keyValRecordsArr.forEach(record => store.put(record[1], record[0]))
       transaction.oncomplete = () => resolve()
       transaction.onerror = (error) => reject(error)
+      const store = transaction.objectStore(this._configuration.name)
+      keyValRecordsArr.forEach(record => store.put(record[1], record[0]))
     })
   }
 
