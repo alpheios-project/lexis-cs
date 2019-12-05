@@ -8,7 +8,7 @@ import RequestMessage from '@lexisCs/messaging/messages/request-message.js'
 export default class ResponseMessage extends Message {
   /**
    * @param {RequestMessage} request - A request that initiated this response. Used to copy routing information mostly.
-   * @param {object} body - A body of the response, a plain JS object with no methods.
+   * @param {object} [body={}] - A body of the response, a plain JS object with no methods.
    * @param {string} responseCode - A code to indicate results of the request handling: Success, Failure, etc.
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
@@ -25,7 +25,7 @@ export default class ResponseMessage extends Message {
    * A builder for a response message with a SUCCESS response code.
    *
    * @param {RequestMessage} request - An original request.
-   * @param {object} body - A body of response message.
+   * @param {object} [body={}] - A body of response message.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
    * @class
    */

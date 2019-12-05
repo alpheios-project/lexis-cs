@@ -6,7 +6,7 @@ import uuidv4 from 'uuid/v4'
 /** A base class for all types of messages */
 export default class Message {
   /**
-   * @param {object} body - A plain JS object (with no methods) representing a body of the message.
+   * @param {object} [body={}] - A plain JS object (with no methods) representing a body of the message.
    */
   constructor (body = {}) {
     /**

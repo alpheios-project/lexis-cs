@@ -88,7 +88,7 @@ export default class Store {
    * Must be implemented in a subclass.
    *
    * @param {any|any[]} keys - A key or an array of keys that specifies which records to retrieve.
-   * @param {object} options - Additional configuration parameters.
+   * @param {object} [options={}] - Additional configuration parameters.
    * @returns {Promise<{key: object[]}>|Promise<Error>} A promise that is resolved with an object. If contains keys
    *          as its properties and values are arrays of records.
    *          A promise rejection is returned if operation failed.

@@ -79,13 +79,13 @@ export default class Cedict {
     if (!configuration.storage.stores) throw new Error('Stores data is missing from a configuration')
     if (!configuration.storage.stores.dictionary) throw new Error('Dictionary tree is missing from a configuration')
     if (!configuration.storage.stores.dictionary.primaryIndex) throw new Error('A primaryIndex tree of a dictionary is missing from a configuration')
-    if (!configuration.storage.stores.dictionary.primaryIndex.hasOwnProperty('keyPath')) throw new Error('A keyPath option of a primaryIndex tree of a dictionary is missing from a configuration') // eslint-disable-line no-prototype-builtins
+    if (!configuration.storage.stores.dictionary.primaryIndex.hasOwnProperty('keyPath')) throw new Error('A keyPath option of a primaryIndex tree of a dictionary is missing from a configuration')
     if (!configuration.storage.stores.dictionary.volatileStorage) throw new Error('A volatileStorage tree of a dictionary is missing from a configuration')
-    if (!configuration.storage.stores.dictionary.volatileStorage.hasOwnProperty('enabled')) throw new Error('enabled option of a volatileStorage tree of a dictionary is missing from a configuration') // eslint-disable-line no-prototype-builtins
-    if (!configuration.storage.stores.dictionary.volatileStorage.hasOwnProperty('indexed')) throw new Error('indexed option of a volatileStorage tree of a dictionary is missing from a configuration') // eslint-disable-line no-prototype-builtins
+    if (!configuration.storage.stores.dictionary.volatileStorage.hasOwnProperty('enabled')) throw new Error('enabled option of a volatileStorage tree of a dictionary is missing from a configuration')
+    if (!configuration.storage.stores.dictionary.volatileStorage.hasOwnProperty('indexed')) throw new Error('indexed option of a volatileStorage tree of a dictionary is missing from a configuration')
     if (!configuration.storage.stores.dictionary.permanentStorage) throw new Error('A permanentStorage tree of a dictionary is missing from a configuration')
-    if (!configuration.storage.stores.dictionary.permanentStorage.hasOwnProperty('enabled')) throw new Error('enabled option of a permanentStorage tree of a dictionary is missing from a configuration') // eslint-disable-line no-prototype-builtins
-    if (!configuration.storage.stores.dictionary.permanentStorage.hasOwnProperty('indexed')) throw new Error('indexed option of a permanentStorage tree of a dictionary is missing from a configuration') // eslint-disable-line no-prototype-builtins
+    if (!configuration.storage.stores.dictionary.permanentStorage.hasOwnProperty('enabled')) throw new Error('enabled option of a permanentStorage tree of a dictionary is missing from a configuration')
+    if (!configuration.storage.stores.dictionary.permanentStorage.hasOwnProperty('indexed')) throw new Error('indexed option of a permanentStorage tree of a dictionary is missing from a configuration')
     if (!configuration.data) throw new Error('Date tree is missing from a configuration')
     if (!configuration.data.version) throw new Error('Data version is missing from a configuration')
     if (!configuration.data.revision) throw new Error('Data revision is missing from a configuration')

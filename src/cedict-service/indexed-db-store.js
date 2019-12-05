@@ -105,7 +105,7 @@ export default class IndexedDbStore extends Store {
    * Retrieves all records from the store for one or several keys. Options object is implementation specific.
    *
    * @param {any|any[]} keys - A key or an array of keys that specifies which records to retrieve.
-   * @param {object} options - Additional configuration parameters:
+   * @param {object} [options={}] - Additional configuration parameters:
    * @param {string} options.index - If the key provided as a first argument is for a secondary index
    *        then this field must contain a name of a secondary index to use. If this field is not specified,
    *        then records will be retrieved using a primary index.

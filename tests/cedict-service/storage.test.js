@@ -24,12 +24,10 @@ describe('Storage class', () => {
   })
 
   it('checkConfiguration: name must be present', () => {
-    // eslint-disable-next-line no-unused-vars
     expect(() => Storage.checkConfiguration(noNameConfig)).toThrowError('Storage name is missing from a configuration')
   })
 
   it('checkConfiguration: version must be present', () => {
-    // eslint-disable-next-line no-unused-vars
     expect(() => Storage.checkConfiguration(noVersionConfig)).toThrowError('Storage version is missing from a configuration')
   })
 
