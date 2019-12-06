@@ -2,20 +2,31 @@
  * @module Store
  */
 
+/**
+ * A configuration object for Store must contain the following information:
+ *
+ * @typedef {object} StoreConfig
+ * @property {string} name - A name of a store.
+ */
+
 /** A base class for data stores */
 export default class Store {
+  /**
+   * @param {StoreConfig} configuration - An object with configuration parameters.
+   */
   constructor (configuration) {
-    this.constructor.checkConfiguration(configuration)
+    this.constructor._checkConfiguration(configuration)
     this._configuration = configuration
   }
 
   /**
-   * Checks if the configuration supplied has all the necessary information in it.
+   * Called internally to check if the configuration supplied has all the information necessary in it.
    * If configuration is not valid it will throw an error indicating which check failed.
    *
-   * @param {object} configuration - A JSON like configuration object.
+   * @param {StoreConfig} configuration - An object with configuration parameters.
+   * @private
    */
-  static checkConfiguration (configuration) {
+  static _checkConfiguration (configuration) {
     if (!configuration.name) throw new Error('A store name is missing from a configuration')
   }
 
@@ -72,7 +83,7 @@ export default class Store {
    * Retrieves all records from the store for a single key. Options object is implementation specific.
    * Must be implemented in a subclass.
    *
-   * @param {any} key - A key that specifies which records to retrieve.
+   * @param {*} key - A key that specifies which records to retrieve.
    * @param {object} options - Additional configuration parameters.
    * @returns {Promise<object[]>|Promise<Error>} A promise that is resolved with an array of records if records
    *          exist in a store or with an empty array if not. A promise rejection is returned if operation failed.
@@ -87,7 +98,7 @@ export default class Store {
    * Retrieves all records from the store for one or several keys. Options object is implementation specific.
    * Must be implemented in a subclass.
    *
-   * @param {any|any[]} keys - A key or an array of keys that specifies which records to retrieve.
+   * @param {*|*[]} keys - A key or an array of keys that specifies which records to retrieve.
    * @param {object} [options={}] - Additional configuration parameters.
    * @returns {Promise<{key: object[]}>|Promise<Error>} A promise that is resolved with an object. If contains keys
    *          as its properties and values are arrays of records.

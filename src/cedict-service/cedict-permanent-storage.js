@@ -17,12 +17,13 @@ export default class CedictPermanentStorage extends Storage {
   }
 
   /**
-   * Checks if the configuration supplied has all the necessary information in it.
+   * Called internally by a super class to check if the configuration supplied has all the necessary information in it.
    * If configuration is not valid it will throw an error indicating which check failed.
    *
    * @param {object} configuration - A JSON like configuration object.
+   * @private
    */
-  static checkConfiguration (configuration) {
+  static _checkConfiguration (configuration) {
     if (!configuration.name) throw new Error('Storage name is missing from a configuration')
     if (!configuration.version) throw new Error('Storage version is missing from a configuration')
     if (!configuration.stores) throw new Error('No stores are defined from a configuration')
