@@ -33,6 +33,18 @@ describe('IndexedDbStore class', () => {
     value: 'Test value two'
   }
 
+  const testRecordOneUpdated = {
+    index: 998,
+    secondaryIndex: 'F',
+    value: 'TEST VALUE ONE'
+  }
+
+  const testRecordTwoUpdated = {
+    index: 999,
+    secondaryIndex: 'G',
+    value: 'TEST VALUE TWO'
+  }
+
   /*
   A helper method to run operations on an IndexedDB mock.
    */
@@ -405,5 +417,212 @@ describe('IndexedDbStore class', () => {
       return indexedDbStore.associateWith(db).create()
     }
     await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.MISSING_SECONDARY_INDEX)
+  })
+
+  it('getAllEntries: returns all records', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      await indexedDbStore.insert([testRecordOne, testRecordTwo])
+      return indexedDbStore.getAllEntries()
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([testRecordOne, testRecordTwo])
+  })
+
+  it('getAllEntries: returns an empty array if there are no records', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      return indexedDbStore.getAllEntries()
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([])
+  })
+
+  it('insert: adds one record to a database', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.insert(testRecordOne)
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [],
+      after: [testRecordOne]
+    })
+  })
+
+  it('insert: adds several record to the database', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.insert([testRecordOne, testRecordTwo])
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [],
+      after: [testRecordOne, testRecordTwo]
+    })
+  })
+
+  it('insert: does nothing if no records provided', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.insert()
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [],
+      after: []
+    })
+  })
+
+  it('insert: throws an error if record already exists', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.insert([testRecordOne, testRecordTwo])
+      await indexedDbStore.insert([testRecordTwo, testRecordOneUpdated])
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.DUPLICATE_RECORD)
+  })
+
+  it('update: updates one record in a database', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      await indexedDbStore.insert(testRecordOne)
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.update([testRecordOneUpdated])
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [testRecordOne],
+      after: [testRecordOneUpdated]
+    })
+  })
+
+  it('update: updates several records in the database', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      await indexedDbStore.insert([testRecordOne, testRecordTwo])
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.update([
+        [testRecordOneUpdated],
+        [testRecordTwoUpdated]
+      ])
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [testRecordOne, testRecordTwo],
+      after: [testRecordOneUpdated, testRecordTwoUpdated]
+    })
+  })
+
+  it('update: does nothing if no records provided', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.update()
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [],
+      after: []
+    })
+  })
+
+  it('update: inserts a record if one does not exist already', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.update([[testRecordOne]])
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [],
+      after: [testRecordOne]
+    })
+  })
+
+  it('update: inserts several records if they do not exist already', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.getAllEntries()
+      await indexedDbStore.update([[testRecordOne], [testRecordTwo]])
+      const after = await indexedDbStore.getAllEntries()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: [],
+      after: [testRecordOne, testRecordTwo]
+    })
+  })
+
+  it('count: return total number of records in a database', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      const before = await indexedDbStore.count()
+      await indexedDbStore.insert([testRecordOne, testRecordTwo])
+      const after = await indexedDbStore.count()
+      return { before, after }
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+      before: 0,
+      after: 2
+    })
+  })
+
+  it('count: return zero if database is empty', async () => {
+    const indexedDbStore = new IndexedDbStore(storeConfiguration)
+    const onOpen = async () => {
+      return indexedDbStore.count()
+    }
+    const onUpgrade = async (db) => {
+      return indexedDbStore.associateWith(db).create()
+    }
+    await expect(execute(onOpen, onUpgrade)).resolves.toBe(0)
   })
 })

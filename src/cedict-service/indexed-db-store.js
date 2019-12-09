@@ -146,7 +146,7 @@ export default class IndexedDbStore extends Store {
    *          as its properties and values are arrays of records.
    *          A promise rejection is returned if operation failed.
    */
-  getEntries (keys, { index = '' } = {}) {
+  getEntries (keys, { index = undefined } = {}) {
     return new Promise((resolve, reject) => {
       this._assertDb()
       if (keys === undefined) reject(new Error(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED))
@@ -163,13 +163,15 @@ export default class IndexedDbStore extends Store {
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i]
         let getRequest
-        if (index) {
+        if (index === undefined) {
+          // A secondary index is not set, we'll retrieve records by the primary index
+          getRequest = store.getAll(IDBKeyRange.only(key))
+        } else {
+          // Check if secondary index is valid
           if (!this._secondaryIndexNames.includes(index)) throw new Error(IndexedDbStore.errorMsgs.MISSING_SECONDARY_INDEX)
           // Use index to retrieve a record
           const dbIndex = store.index(index)
           getRequest = dbIndex.getAll(IDBKeyRange.only(key))
-        } else {
-          getRequest = store.getAll(IDBKeyRange.only(key))
         }
         getRequest.onsuccess = () => {
           result[key] = getRequest.result
@@ -204,7 +206,8 @@ export default class IndexedDbStore extends Store {
   }
 
   /**
-   * Inserts new records into a store.
+   * Inserts new records into a store. If one or several records already exist in a database
+   * it rejects with an error.
    *
    * @param {object|object[]} records - An array of records to insert.
    * @returns {Promise<undefined>|Promise<Error>} A promise that is resolved if records were inserted
@@ -217,17 +220,30 @@ export default class IndexedDbStore extends Store {
       if (!Array.isArray(records)) { records = [records] }
       let transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ_WRITE) // eslint-disable-line prefer-const
       transaction.oncomplete = () => resolve()
-      transaction.onerror = (error) => reject(error)
+      transaction.onerror = (event) => reject(event)
       const store = transaction.objectStore(this._configuration.name)
-      records.forEach(record => store.put(record))
+      records.forEach(record => {
+        let addRequest = store.add(record) // eslint-disable-line prefer-const
+        addRequest.onerror = () => {
+          if (addRequest.error.name === 'ConstraintError') {
+            reject(new Error(IndexedDbStore.errorMsgs.DUPLICATE_RECORD))
+          }
+          reject(addRequest.error)
+        }
+      })
     })
   }
 
   /**
    * Updates records that already exist in a store.
+   * If a record given does not exist in a database yet it will be added there.
+   * TODO: with what data format does this function is expected to use most?
    *
    * @param {[*, object]|[[*, object]]} keyValRecordsArr - A single item or an array of items
-   *        to insert. Each item is an array with key as a first member and a record to insert as a second one.
+   *        to insert. Each item is an array with record as a first member and key as a second one.
+   *        If database does not use external keys (such as auto-incremented ones) the key value
+   *        will be ignored and can be omitted.
+   *        External keys are not supported currently.
    * @returns {Promise<undefined>|Promise<Error>} A promise that is resolved if records were updated
    *          successfully and is rejected if operation failed.
    */
@@ -241,7 +257,10 @@ export default class IndexedDbStore extends Store {
       transaction.oncomplete = () => resolve()
       transaction.onerror = (error) => reject(error)
       const store = transaction.objectStore(this._configuration.name)
-      keyValRecordsArr.forEach(record => store.put(record[1], record[0]))
+      keyValRecordsArr.forEach(record => {
+        let addRequest = store.put(record[0]) // eslint-disable-line prefer-const
+        addRequest.onerror = () => reject(addRequest.error)
+      })
     })
   }
 
@@ -268,5 +287,6 @@ IndexedDbStore.errorMsgs = {
   NO_PRIMARY_INDEX: 'A primaryIndex tree is missing from a configuration',
   NO_KEY_PATH: 'A keyPath prop of a primaryIndex tree is missing from a configuration',
   NO_KEYS_PROVIDED: 'No keys are provided',
-  MISSING_SECONDARY_INDEX: 'Specified secondary index does not exist'
+  MISSING_SECONDARY_INDEX: 'Specified secondary index does not exist',
+  DUPLICATE_RECORD: 'Record already exists'
 }
