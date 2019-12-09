@@ -90,10 +90,6 @@ describe('IndexedDbStore class', () => {
     })
   }
 
-  beforeEach(() => {
-    jest.resetModules()
-  })
-
   it('constructor: creates an instance of an IndexedDbStore class', () => {
     const indexedDbStore = new IndexedDbStore(storeConfiguration)
     expect(indexedDbStore instanceof IndexedDbStore).toBeTruthy()

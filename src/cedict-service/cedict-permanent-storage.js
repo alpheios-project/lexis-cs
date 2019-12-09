@@ -55,39 +55,8 @@ export default class CedictPermanentStorage extends Storage {
   }
 
   /**
-   * Called to create a storage when one does not exist or is of incorrect version.
-   * This method cannot be called directly, only as a result of an onupgradeneeded event
-   * triggered by the open DB request.
-   *
-   * @param {IDBOpenDBRequest} openRequest - An open request that caused an onupgradeneeded event.
-   * @param {Function} reject - A reject function for promise declared in `connect()`.
-   * @returns {Promise} A promise that is resolved if storage is created successfully or
-   *                    is rejected otherwise.
-   */
-  create (openRequest, reject) {
-    this._db = openRequest.result
-    const storeCreateRequests = Object.values(this.stores).map(store => { store.associateWith(this._db).create() })
-    return Promise.all(storeCreateRequests)
-  }
-
-  /**
-   * Destroys a storage and all the stores it contains.
-   *
-   * @returns {Promise<undefined>|Promise<Error>} Returns a promise that is resolved if storage
-   *          and all stores were destroyed successfully or is rejected if operations fails.
-   */
-  destroy () {
-    return new Promise((resolve, reject) => {
-      this.disconnect().then(() => {
-        const deleteRequest = indexedDB.deleteDatabase(this._configuration.name)
-        deleteRequest.onsuccess = () => { resolve() }
-        deleteRequest.onerror = () => { reject(new Error('Storage cannot be destroyed')) }
-      })
-    })
-  }
-
-  /**
-   * Establishes a connection to the storage. It, if necessary, initializes a storage and stores it contains.
+   * This is a primary method of establishing connection to the storage.
+   * If storage and stores it contains do not exist, connect() will create them.
    *
    * @returns {Promise<undefined>|Promise<Error>} Returns a promise that is resolved if connection is
    *          established successfully or is rejected if connection fails.
@@ -96,7 +65,7 @@ export default class CedictPermanentStorage extends Storage {
     return new Promise((resolve, reject) => {
       // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
       const openRequest = indexedDB.open(this._configuration.name, this._configuration.version) // eslint-disable-line prefer-const
-      openRequest.onupgradeneeded = this.create.bind(this, openRequest)
+      openRequest.onupgradeneeded = this._create.bind(this, openRequest)
 
       openRequest.onsuccess = () => {
         this._db = openRequest.result
@@ -118,6 +87,38 @@ export default class CedictPermanentStorage extends Storage {
       this._db.close()
     }
     return Promise.resolve()
+  }
+
+  /**
+   * Called to create a storage when one does not exist or is of incorrect version.
+   * This method cannot be called directly, only as a result of an onupgradeneeded event
+   * triggered by the open DB request.
+   *
+   * @param {IDBOpenDBRequest} openRequest - An open request that caused an onupgradeneeded event.
+   * @param {Function} reject - A reject function for promise declared in `connect()`.
+   * @returns {Promise} A promise that is resolved if storage is created successfully or
+   *                    is rejected otherwise.
+   */
+  _create (openRequest, reject) {
+    this._db = openRequest.result
+    const storeCreateRequests = Object.values(this.stores).map(store => { store.associateWith(this._db).create() })
+    return Promise.all(storeCreateRequests)
+  }
+
+  /**
+   * Destroys a storage and all the stores it contains.
+   *
+   * @returns {Promise<undefined>|Promise<Error>} Returns a promise that is resolved if storage
+   *          and all stores were destroyed successfully or is rejected if operations fails.
+   */
+  _destroy () {
+    return new Promise((resolve, reject) => {
+      this.disconnect().then(() => {
+        const deleteRequest = indexedDB.deleteDatabase(this._configuration.name)
+        deleteRequest.onsuccess = () => { resolve() }
+        deleteRequest.onerror = () => { reject(new Error('Storage cannot be destroyed')) }
+      })
+    })
   }
 }
 
