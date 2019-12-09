@@ -368,7 +368,7 @@ export default class Cedict {
     and it's index must be as defined in `this.cedict.metaKey`.
     Only the use of `update` allow to specify an index for the record.
      */
-    const metaUpdate = this._storage.stores.meta.update([this.cedict.metaKey, meta])
+    const metaUpdate = this._storage.stores.meta.update([meta, this.cedict.metaKey])
     const dictionaryUpdate = this._storage.stores.dictionary.insert(dictionary)
     return Promise.all([metaUpdate, dictionaryUpdate])
   }

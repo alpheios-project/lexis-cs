@@ -115,7 +115,7 @@ describe('IndexedDbStore class', () => {
     // eslint-disable-next-line prefer-const
     let incorrectConfig = JSON.parse(JSON.stringify(storeConfiguration)) // To create a deep copy of a simple object
     delete incorrectConfig.primaryIndex.keyPath
-    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errorMsgs.NO_KEY_PATH)
+    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX_PROPS)
   })
 
   it('associateWith: returns a reference to an IndexedDbStore instance', () => {

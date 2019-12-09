@@ -34,7 +34,10 @@ export default class IndexedDbStore extends Store {
   static _checkConfiguration (configuration) {
     if (!configuration.name) throw new Error(IndexedDbStore.errorMsgs.NO_STORE_NAME)
     if (!configuration.primaryIndex) throw new Error(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX)
-    if (!configuration.primaryIndex.hasOwnProperty('keyPath')) throw new Error(IndexedDbStore.errorMsgs.NO_KEY_PATH)
+    if (
+      !configuration.primaryIndex.hasOwnProperty('keyPath') &&
+      !configuration.primaryIndex.hasOwnProperty('auto')
+    ) throw new Error(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX_PROPS)
   }
 
   /**
@@ -55,6 +58,15 @@ export default class IndexedDbStore extends Store {
    */
   _assertDb () {
     if (!this._db) throw new Error(IndexedDbStore.errorMsgs.NO_DB)
+  }
+
+  /**
+   * Checks if store has an auto-incremented primary key
+   * @returns {boolean} True if primary key is auto-incremented.
+   * @private
+   */
+  get _isAutoPrimaryKey () {
+    return this._configuration.primaryIndex.hasOwnProperty('auto') && this._configuration.primaryIndex.auto
   }
 
   /**
@@ -243,7 +255,6 @@ export default class IndexedDbStore extends Store {
    *        to insert. Each item is an array with record as a first member and key as a second one.
    *        If database does not use external keys (such as auto-incremented ones) the key value
    *        will be ignored and can be omitted.
-   *        External keys are not supported currently.
    * @returns {Promise<undefined>|Promise<Error>} A promise that is resolved if records were updated
    *          successfully and is rejected if operation failed.
    */
@@ -258,7 +269,7 @@ export default class IndexedDbStore extends Store {
       transaction.onerror = (error) => reject(error)
       const store = transaction.objectStore(this._configuration.name)
       keyValRecordsArr.forEach(record => {
-        let addRequest = store.put(record[0]) // eslint-disable-line prefer-const
+        let addRequest = this._isAutoPrimaryKey ? store.put(record[0], record[1]) : store.put(record[0]) // eslint-disable-line prefer-const
         addRequest.onerror = () => reject(addRequest.error)
       })
     })
@@ -285,7 +296,7 @@ IndexedDbStore.errorMsgs = {
   NO_DB: 'Store is not associated with a DB',
   NO_STORE_NAME: 'A store name is missing from a configuration',
   NO_PRIMARY_INDEX: 'A primaryIndex tree is missing from a configuration',
-  NO_KEY_PATH: 'A keyPath prop of a primaryIndex tree is missing from a configuration',
+  NO_PRIMARY_INDEX_PROPS: 'A primaryIndex tree must have either a "keyPath" or "auto" props',
   NO_KEYS_PROVIDED: 'No keys are provided',
   MISSING_SECONDARY_INDEX: 'Specified secondary index does not exist',
   DUPLICATE_RECORD: 'Record already exists'

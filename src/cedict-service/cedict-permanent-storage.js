@@ -24,9 +24,9 @@ export default class CedictPermanentStorage extends Storage {
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error('Storage name is missing from a configuration')
-    if (!configuration.version) throw new Error('Storage version is missing from a configuration')
-    if (!configuration.stores) throw new Error('No stores are defined from a configuration')
+    if (!configuration.name) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORAGE_NAME)
+    if (!configuration.version) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORAGE_VERSION)
+    if (!configuration.stores) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORES)
   }
 
   /**
@@ -119,4 +119,10 @@ export default class CedictPermanentStorage extends Storage {
     }
     return Promise.resolve()
   }
+}
+
+CedictPermanentStorage.errorMsgs = {
+  NO_STORAGE_NAME: 'Storage name is missing from a configuration',
+  NO_STORAGE_VERSION: 'Storage version is missing from a configuration',
+  NO_STORES: 'No stores are defined in a configuration'
 }
