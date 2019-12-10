@@ -37,6 +37,6 @@ describe('Storage class', () => {
   })
 
   it('getIntegrityData: must return a promise', () => {
-    expect(storage.getIntergrityData()).toBeInstanceOf(Promise)
+    expect(storage.getIntegrityData()).toBeInstanceOf(Promise)
   })
 })

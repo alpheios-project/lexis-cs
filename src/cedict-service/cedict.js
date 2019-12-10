@@ -108,7 +108,7 @@ export default class Cedict {
           console.error('Connection to storage cannot be established')
           reject(error)
         })
-        .then(() => this._storage.getIntergrityData())
+        .then(() => this._storage.getIntegrityData())
         .then((integrityData) => {
           /*
           Integrity data has been returned successfully which means database structure is OK.

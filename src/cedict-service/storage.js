@@ -77,7 +77,7 @@ export default class Storage {
    *          Returns a promise that is resolved with an object with storage integrity information or is rejected
    *          if storage integrity is broken.
    */
-  getIntergrityData () {
+  getIntegrityData () {
     return new Promise((resolve) => {
       resolve({})
     })

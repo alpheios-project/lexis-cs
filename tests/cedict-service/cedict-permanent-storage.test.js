@@ -94,15 +94,53 @@ describe('CedictPermanentStorage class', () => {
     expect(() => new CedictPermanentStorage(noStoresConfig)).toThrowError(CedictPermanentStorage.errorMsgs.NO_STORES)
   })
 
-  it('getIntegrityData: ', async () => {
+  it('getIntegrityData: returns number of records and metadata', async () => {
     const storage = new CedictPermanentStorage(configuration)
     await storage.connect()
-    await storage.stores.dictionary.insert([dictRecordOne, dictRecordTwo])
-    await storage.stores.meta.update([meta, storage.metaKey])
-    await expect(storage.getIntergrityData()).resolves.toEqual({
+    await storage.getStore('meta').update([meta, storage.metaKey])
+    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
+    await expect(storage.getIntegrityData()).resolves.toEqual({
       metadata: meta,
       recordsInMeta: 1,
       recordsInDictionary: 2
     })
+    // Clear the storage
+    await storage.clear()
+    await storage.disconnect()
+  })
+
+  it('getIntegrityData: rejects if metadata is missing', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await storage.connect()
+    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
+    await expect(storage.getIntegrityData()).rejects.toThrowError(CedictPermanentStorage.errorMsgs.NO_META)
+    // Clear the storage
+    await storage.clear()
+    await storage.disconnect()
+  })
+
+  it('connect: establishes a connection', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await storage.connect()
+    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
+    await expect(storage.getStore('dictionary').getAllEntries()).resolves.toEqual([dictRecordOne, dictRecordTwo])
+    // Clear the storage
+    await storage.clear()
+    await storage.disconnect()
+  })
+
+  it('disconnect: closes a connection', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await storage.connect()
+    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
+    // Verify that a connection is established and store contains records
+    await expect(storage.getStore('dictionary').getAllEntries()).resolves.toEqual([dictRecordOne, dictRecordTwo])
+    await storage.disconnect()
+    // getStore will throw an error if connection is closed
+    expect(() => storage.getStore('dictionary')).toThrowError('')
+    // Clear the storage
+    await storage.connect()
+    await storage.clear()
+    await storage.disconnect()
   })
 })

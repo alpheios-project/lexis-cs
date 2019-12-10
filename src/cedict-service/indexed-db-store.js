@@ -44,10 +44,20 @@ export default class IndexedDbStore extends Store {
    * Associates a store with an IndexedDB interface of a database where it is located.
    *
    * @param {IDBDatabase} db - An interface for connecting to IndexedDB.
-   * @returns {Store} A self-reference for chaining.
+   * @returns {IndexedDbStore} A self-reference for chaining.
    */
   associateWith (db) {
     this._db = db
+    return this
+  }
+
+  /**
+   * Disassociate a store from IndexedDB. This method is called when client is disconnected from IndexedDB.
+   *
+   * @returns {IndexedDbStore} A self-reference for chaining.
+   */
+  dissociate () {
+    this._db = null
     return this
   }
 
