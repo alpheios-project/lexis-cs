@@ -48,6 +48,16 @@ export default class CedictPermanentStorage extends Storage {
   }
 
   /**
+   * Checks if a store with a given name exists.
+   *
+   * @param {string} storeName - The name of the store.
+   * @returns {boolean} true if store exists or false otherwise.
+   */
+  hasStore (storeName) {
+    return this._stores.has(storeName)
+  }
+
+  /**
    * Returns a store object. It will throw an error if store does not exist
    * of if a connection to the database is closed.
    *

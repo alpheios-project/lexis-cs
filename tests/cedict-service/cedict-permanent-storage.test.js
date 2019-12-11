@@ -1,5 +1,6 @@
 /* eslint-env jest */
 import CedictPermanentStorage from '@lexisCs/cedict-service/cedict-permanent-storage.js'
+import IndexedDbStore from '@lexisCs/cedict-service/indexed-db-store.js'
 require('fake-indexeddb/auto')
 
 describe('CedictPermanentStorage class', () => {
@@ -94,11 +95,40 @@ describe('CedictPermanentStorage class', () => {
     expect(() => new CedictPermanentStorage(noStoresConfig)).toThrowError(CedictPermanentStorage.errorMsgs.NO_STORES)
   })
 
+  it('hasStore: a check for an existing store', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await expect(storage.hasStore(configuration.stores.meta.name)).toBeTruthy()
+  })
+
+  it('hasStore: a check for a non-existent store', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await expect(storage.hasStore('non existent store')).toBeFalsy()
+  })
+
+  it('getStore: returns a store by name', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await storage.connect()
+    await expect(storage.getStore(configuration.stores.meta.name)).toBeInstanceOf(IndexedDbStore)
+    await storage.disconnect()
+  })
+
+  it('getStore: throws an error if store does not exist', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await storage.connect()
+    await expect(() => storage.getStore('non existent store')).toThrowError(CedictPermanentStorage.errorMsgs.MISSING_STORE)
+    await storage.disconnect()
+  })
+
+  it('getStore: throws an error if database connection is closed', async () => {
+    const storage = new CedictPermanentStorage(configuration)
+    await expect(() => storage.getStore(configuration.stores.meta.name)).toThrowError(CedictPermanentStorage.errorMsgs.CLOSED_CONNECTION)
+  })
+
   it('getIntegrityData: returns number of records and metadata', async () => {
     const storage = new CedictPermanentStorage(configuration)
     await storage.connect()
-    await storage.getStore('meta').update([meta, storage.metaKey])
-    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
+    await storage.getStore(configuration.stores.meta.name).update([meta, storage.metaKey])
+    await storage.getStore(configuration.stores.dictionary.name).insert([dictRecordOne, dictRecordTwo])
     await expect(storage.getIntegrityData()).resolves.toEqual({
       metadata: meta,
       recordsInMeta: 1,
@@ -112,7 +142,7 @@ describe('CedictPermanentStorage class', () => {
   it('getIntegrityData: rejects if metadata is missing', async () => {
     const storage = new CedictPermanentStorage(configuration)
     await storage.connect()
-    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
+    await storage.getStore(configuration.stores.dictionary.name).insert([dictRecordOne, dictRecordTwo])
     await expect(storage.getIntegrityData()).rejects.toThrowError(CedictPermanentStorage.errorMsgs.NO_META)
     // Clear the storage
     await storage.clear()
@@ -122,8 +152,9 @@ describe('CedictPermanentStorage class', () => {
   it('connect: establishes a connection', async () => {
     const storage = new CedictPermanentStorage(configuration)
     await storage.connect()
-    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
-    await expect(storage.getStore('dictionary').getAllEntries()).resolves.toEqual([dictRecordOne, dictRecordTwo])
+    await storage.getStore(configuration.stores.dictionary.name).insert([dictRecordOne, dictRecordTwo])
+    await expect(storage.getStore(configuration.stores.dictionary.name).getAllEntries())
+      .resolves.toEqual([dictRecordOne, dictRecordTwo])
     // Clear the storage
     await storage.clear()
     await storage.disconnect()
@@ -132,12 +163,13 @@ describe('CedictPermanentStorage class', () => {
   it('disconnect: closes a connection', async () => {
     const storage = new CedictPermanentStorage(configuration)
     await storage.connect()
-    await storage.getStore('dictionary').insert([dictRecordOne, dictRecordTwo])
+    await storage.getStore(configuration.stores.dictionary.name).insert([dictRecordOne, dictRecordTwo])
     // Verify that a connection is established and store contains records
-    await expect(storage.getStore('dictionary').getAllEntries()).resolves.toEqual([dictRecordOne, dictRecordTwo])
+    await expect(storage.getStore(configuration.stores.dictionary.name).getAllEntries())
+      .resolves.toEqual([dictRecordOne, dictRecordTwo])
     await storage.disconnect()
     // getStore will throw an error if connection is closed
-    expect(() => storage.getStore('dictionary')).toThrowError('')
+    expect(() => storage.getStore(configuration.stores.dictionary.name)).toThrowError('')
     // Clear the storage
     await storage.connect()
     await storage.clear()
