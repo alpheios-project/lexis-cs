@@ -166,8 +166,9 @@ export default class CedictPermanentStorage extends Storage {
    * @returns {Promise<undefined>|Promise<Error>} Returns a promise that is resolved if storage
    *          and all _stores were destroyed successfully or is rejected if operations fails.
    */
-  _destroy () {
+  destroy () {
     return new Promise((resolve, reject) => {
+      this._assertConnection()
       this.disconnect().then(() => {
         const deleteRequest = indexedDB.deleteDatabase(this._configuration.name)
         deleteRequest.onsuccess = () => { resolve() }

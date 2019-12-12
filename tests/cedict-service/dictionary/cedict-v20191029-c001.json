@@ -1,0 +1,128 @@
+{
+  "metadata": {
+    "name": "CC-CEDICT",
+    "description": "Community maintained free Chinese-English dictionary.",
+    "licenseName": "Creative Commons Attribution-ShareAlike 4.0 International License",
+    "licenseURI": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "referencedWorks": [
+      "CEDICT - Copyright (C) 1997, 1998 Paul Andrew Denisowski"
+    ],
+    "downloadURI": "https://www.mdbg.net/chinese/dictionary?page=cc-cedict",
+    "editorURI": "https://cc-cedict.org/editor/editor.php",
+    "referenceURI": "https://cc-cedict.org/wiki/",
+    "originalVersion": "1",
+    "originalSubversion": "0",
+    "originalFormat": "ts",
+    "originalCharset": "UTF-8",
+    "publisher": "MDBG",
+    "version": 20191029,
+    "revision": 1,
+    "dateTime": "2019-10-29T06:16:52.000Z",
+    "chunkNumber": 1
+  },
+  "entries": [
+    {
+      "index": 1,
+      "type": "not specified",
+      "traditionalHeadword": "%",
+      "simplifiedHeadword": "%",
+      "pinyin": "pa1",
+      "descriptions": [
+        "percent (Tw)"
+      ]
+    },
+    {
+      "index": 2,
+      "type": "not specified",
+      "traditionalHeadword": "21三體綜合症",
+      "simplifiedHeadword": "21三体综合症",
+      "pinyin": "er4 shi2 yi1 san1 ti3 zong1 he2 zheng4",
+      "descriptions": [
+        "trisomy",
+        "Down's syndrome"
+      ]
+    },
+    {
+      "index": 3,
+      "type": "not specified",
+      "traditionalHeadword": "3C",
+      "simplifiedHeadword": "3C",
+      "pinyin": "san1 C",
+      "descriptions": [
+        "abbr. for computers, communications, and consumer electronics",
+        "China Compulsory Certificate (CCC)"
+      ]
+    },
+    {
+      "index": 4,
+      "type": "not specified",
+      "traditionalHeadword": "3P",
+      "simplifiedHeadword": "3P",
+      "pinyin": "san1 P",
+      "descriptions": [
+        "(slang) threesome"
+      ]
+    },
+    {
+      "index": 5,
+      "type": "not specified",
+      "traditionalHeadword": "3Q",
+      "simplifiedHeadword": "3Q",
+      "pinyin": "san1 Q",
+      "descriptions": [
+        "(Internet slang) thank you (loanword)"
+      ]
+    },
+    {
+      "index": 6,
+      "type": "not specified",
+      "traditionalHeadword": "502膠",
+      "simplifiedHeadword": "502胶",
+      "pinyin": "wu3 ling2 er4 jiao1",
+      "descriptions": [
+        "cyanoacrylate glue"
+      ]
+    },
+    {
+      "index": 7,
+      "type": "not specified",
+      "traditionalHeadword": "88",
+      "simplifiedHeadword": "88",
+      "pinyin": "ba1 ba1",
+      "descriptions": [
+        "(Internet slang) bye-bye (alternative for 拜拜[bai2 bai2])"
+      ]
+    },
+    {
+      "index": 8,
+      "type": "not specified",
+      "traditionalHeadword": "996",
+      "simplifiedHeadword": "996",
+      "pinyin": "jiu3 jiu3 liu4",
+      "descriptions": [
+        "9am-9pm, six days a week (work schedule)"
+      ]
+    },
+    {
+      "index": 9,
+      "type": "not specified",
+      "traditionalHeadword": "A",
+      "simplifiedHeadword": "A",
+      "pinyin": "A",
+      "descriptions": [
+        "(slang) (Tw) to steal"
+      ]
+    },
+    {
+      "index": 10,
+      "type": "not specified",
+      "traditionalHeadword": "AA制",
+      "simplifiedHeadword": "AA制",
+      "pinyin": "A A zhi4",
+      "descriptions": [
+        "to split the bill",
+        "to go Dutch"
+      ]
+    }
+  ]
+}
