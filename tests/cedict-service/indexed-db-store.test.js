@@ -98,20 +98,20 @@ describe('IndexedDbStore class', () => {
   it('constructor: configuration has a name prop', () => {
     let incorrectConfig = Object.assign({}, storeConfiguration) // eslint-disable-line prefer-const
     delete incorrectConfig.name
-    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errorMsgs.NO_STORE_NAME)
+    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errMsgs.NO_STORE_NAME)
   })
 
   it('constructor: configuration has a primaryIndex prop', () => {
     let incorrectConfig = Object.assign({}, storeConfiguration) // eslint-disable-line prefer-const
     delete incorrectConfig.primaryIndex
-    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX)
+    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errMsgs.NO_PRIMARY_INDEX)
   })
 
   it('constructor: configuration has a keyPath prop', () => {
     // eslint-disable-next-line prefer-const
     let incorrectConfig = JSON.parse(JSON.stringify(storeConfiguration)) // To create a deep copy of a simple object
     delete incorrectConfig.primaryIndex.keyPath
-    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX_PROPS)
+    expect(() => new IndexedDbStore(incorrectConfig)).toThrowError(IndexedDbStore.errMsgs.NO_PRIMARY_INDEX_PROPS)
   })
 
   it('associateWith: returns a reference to an IndexedDbStore instance', () => {
@@ -130,7 +130,7 @@ describe('IndexedDbStore class', () => {
     const indexedDbStore = new IndexedDbStore(storeConfiguration)
     const onOpen = async (db) => db.objectStoreNames
     const onUpgrade = () => indexedDbStore.create()
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.NO_DB)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_DB)
   })
 
   it('clear: deletes all records from a store', async () => {
@@ -214,7 +214,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('get: rejects if a secondary index name is incorrect', async () => {
@@ -226,7 +226,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.MISSING_SECONDARY_INDEX)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
   })
 
   it('getEntries: retrieves a single record by a primary index', async () => {
@@ -363,7 +363,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if an array of keys is empty', async () => {
@@ -375,7 +375,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if a secondary key is not provided', async () => {
@@ -388,7 +388,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if an array of secondary keys is empty', async () => {
@@ -400,7 +400,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if secondary index name is incorrect', async () => {
@@ -412,7 +412,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.MISSING_SECONDARY_INDEX)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
   })
 
   it('getAllEntries: returns all records', async () => {
@@ -501,7 +501,7 @@ describe('IndexedDbStore class', () => {
     const onUpgrade = async (db) => {
       return indexedDbStore.associateWith(db).create()
     }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errorMsgs.DUPLICATE_RECORD)
+    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.DUPLICATE_RECORD)
   })
 
   it('update: updates one record in a database', async () => {

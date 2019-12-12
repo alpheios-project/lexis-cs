@@ -3,8 +3,6 @@ import Storage from '@lexisCs/cedict-service/storage.js'
 
 describe('Storage class', () => {
   const configuration = { name: 'A storage name', version: '123' }
-  const noNameConfig = { version: '123', someOtherProp: 'Some value' }
-  const noVersionConfig = { name: 'A storage name', someOtherProp: 'Some value' }
   const storage = new Storage(configuration)
 
   it('constructor: must store configuration internally', () => {
@@ -13,11 +11,15 @@ describe('Storage class', () => {
   })
 
   it('constructor: configuration must have a name prop', () => {
-    expect(() => new Storage(noNameConfig)).toThrowError('Storage name is missing from a configuration')
+    let config = JSON.parse(JSON.stringify(configuration)) // eslint-disable-line prefer-const
+    delete config.name
+    expect(() => new Storage(config)).toThrowError(Storage.errMsgs.CONF_NO_NAME)
   })
 
   it('constructor: configuration must have a version prop', () => {
-    expect(() => new Storage(noVersionConfig)).toThrowError('Storage version is missing from a configuration')
+    let config = JSON.parse(JSON.stringify(configuration)) // eslint-disable-line prefer-const
+    delete config.version
+    expect(() => new Storage(config)).toThrowError(Storage.errMsgs.CONF_NO_VER)
   })
 
   it('create: must return a promise', () => {

@@ -33,9 +33,9 @@ export default class CedictPermanentStorage extends Storage {
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORAGE_NAME)
-    if (!configuration.version) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORAGE_VERSION)
-    if (!configuration.stores) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORES)
+    if (!configuration.name) throw new Error(CedictPermanentStorage.errMsgs.NO_STORAGE_NAME)
+    if (!configuration.version) throw new Error(CedictPermanentStorage.errMsgs.NO_STORAGE_VERSION)
+    if (!configuration.stores) throw new Error(CedictPermanentStorage.errMsgs.NO_STORES)
   }
 
   /**
@@ -44,7 +44,7 @@ export default class CedictPermanentStorage extends Storage {
    * @private
    */
   _assertConnection () {
-    if (!this._db) throw new Error(CedictPermanentStorage.errorMsgs.CLOSED_CONNECTION)
+    if (!this._db) throw new Error(CedictPermanentStorage.errMsgs.CLOSED_CONNECTION)
   }
 
   /**
@@ -65,7 +65,7 @@ export default class CedictPermanentStorage extends Storage {
    * @returns {IndexedDbStore} An instance of a store object.
    */
   getStore (storeName) {
-    if (!this._stores.has(storeName)) throw new Error(CedictPermanentStorage.errorMsgs.MISSING_STORE)
+    if (!this._stores.has(storeName)) throw new Error(CedictPermanentStorage.errMsgs.MISSING_STORE)
     this._assertConnection()
     return this._stores.get(storeName)
   }
@@ -90,7 +90,7 @@ export default class CedictPermanentStorage extends Storage {
       return Promise.reject(error)
     }
     return Promise.all(integrityRequests).then(([recordsInMeta, recordsInDictionary, metadata]) => {
-      if (!metadata || metadata.length === 0) throw new Error(CedictPermanentStorage.errorMsgs.NO_META)
+      if (!metadata || metadata.length === 0) throw new Error(CedictPermanentStorage.errMsgs.NO_META)
       return { recordsInMeta, recordsInDictionary, metadata: metadata[0] }
     })
   }
@@ -172,13 +172,13 @@ export default class CedictPermanentStorage extends Storage {
       this.disconnect().then(() => {
         const deleteRequest = indexedDB.deleteDatabase(this._configuration.name)
         deleteRequest.onsuccess = () => { resolve() }
-        deleteRequest.onerror = () => { reject(new Error(CedictPermanentStorage.errorMsgs.DESTRUCTION_ERROR)) }
+        deleteRequest.onerror = () => { reject(new Error(CedictPermanentStorage.errMsgs.DESTRUCTION_ERROR)) }
       })
     })
   }
 }
 
-CedictPermanentStorage.errorMsgs = {
+CedictPermanentStorage.errMsgs = {
   NO_STORAGE_NAME: 'Storage name is missing from a configuration',
   NO_STORAGE_VERSION: 'Storage version is missing from a configuration',
   NO_STORES: 'No stores are defined in a configuration',

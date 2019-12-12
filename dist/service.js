@@ -263,9 +263,9 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORAGE_NAME)
-    if (!configuration.version) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORAGE_VERSION)
-    if (!configuration.stores) throw new Error(CedictPermanentStorage.errorMsgs.NO_STORES)
+    if (!configuration.name) throw new Error(CedictPermanentStorage.errMsgs.NO_STORAGE_NAME)
+    if (!configuration.version) throw new Error(CedictPermanentStorage.errMsgs.NO_STORAGE_VERSION)
+    if (!configuration.stores) throw new Error(CedictPermanentStorage.errMsgs.NO_STORES)
   }
 
   /**
@@ -274,7 +274,7 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    * @private
    */
   _assertConnection () {
-    if (!this._db) throw new Error(CedictPermanentStorage.errorMsgs.CLOSED_CONNECTION)
+    if (!this._db) throw new Error(CedictPermanentStorage.errMsgs.CLOSED_CONNECTION)
   }
 
   /**
@@ -295,7 +295,7 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    * @returns {IndexedDbStore} An instance of a store object.
    */
   getStore (storeName) {
-    if (!this._stores.has(storeName)) throw new Error(CedictPermanentStorage.errorMsgs.MISSING_STORE)
+    if (!this._stores.has(storeName)) throw new Error(CedictPermanentStorage.errMsgs.MISSING_STORE)
     this._assertConnection()
     return this._stores.get(storeName)
   }
@@ -320,7 +320,7 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
       return Promise.reject(error)
     }
     return Promise.all(integrityRequests).then(([recordsInMeta, recordsInDictionary, metadata]) => {
-      if (!metadata || metadata.length === 0) throw new Error(CedictPermanentStorage.errorMsgs.NO_META)
+      if (!metadata || metadata.length === 0) throw new Error(CedictPermanentStorage.errMsgs.NO_META)
       return { recordsInMeta, recordsInDictionary, metadata: metadata[0] }
     })
   }
@@ -402,13 +402,13 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
       this.disconnect().then(() => {
         const deleteRequest = indexedDB.deleteDatabase(this._configuration.name)
         deleteRequest.onsuccess = () => { resolve() }
-        deleteRequest.onerror = () => { reject(new Error(CedictPermanentStorage.errorMsgs.DESTRUCTION_ERROR)) }
+        deleteRequest.onerror = () => { reject(new Error(CedictPermanentStorage.errMsgs.DESTRUCTION_ERROR)) }
       })
     })
   }
 }
 
-CedictPermanentStorage.errorMsgs = {
+CedictPermanentStorage.errMsgs = {
   NO_STORAGE_NAME: 'Storage name is missing from a configuration',
   NO_STORAGE_VERSION: 'Storage version is missing from a configuration',
   NO_STORES: 'No stores are defined in a configuration',
@@ -912,12 +912,12 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error(IndexedDbStore.errorMsgs.NO_STORE_NAME)
-    if (!configuration.primaryIndex) throw new Error(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX)
+    if (!configuration.name) throw new Error(IndexedDbStore.errMsgs.NO_STORE_NAME)
+    if (!configuration.primaryIndex) throw new Error(IndexedDbStore.errMsgs.NO_PRIMARY_INDEX)
     if (
       !configuration.primaryIndex.hasOwnProperty('keyPath') &&
       !configuration.primaryIndex.hasOwnProperty('auto')
-    ) throw new Error(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX_PROPS)
+    ) throw new Error(IndexedDbStore.errMsgs.NO_PRIMARY_INDEX_PROPS)
   }
 
   /**
@@ -947,7 +947,7 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
    * @private
    */
   _assertDb () {
-    if (!this._db) throw new Error(IndexedDbStore.errorMsgs.NO_DB)
+    if (!this._db) throw new Error(IndexedDbStore.errMsgs.NO_DB)
   }
 
   /**
@@ -1032,7 +1032,7 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
    *          exist in a store or with an empty array if not. A promise rejection is returned if operation failed.
    */
   async get (key, options = {}) {
-    if (key === undefined) throw new Error(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED)
+    if (key === undefined) throw new Error(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
     return this.getEntries([key], options).then((result) => result[key])
   }
 
@@ -1051,9 +1051,9 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
   getEntries (keys, { index = undefined } = {}) {
     return new Promise((resolve, reject) => {
       this._assertDb()
-      if (keys === undefined) reject(new Error(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED))
+      if (keys === undefined) reject(new Error(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED))
       if (!Array.isArray(keys)) keys = [keys]
-      if (keys.length === 0) reject(new Error(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED))
+      if (keys.length === 0) reject(new Error(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED))
       const transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ)
       const store = transaction.objectStore(this._configuration.name)
       // Create an object with keys as its props
@@ -1070,7 +1070,7 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
           getRequest = store.getAll(IDBKeyRange.only(key))
         } else {
           // Check if secondary index is valid
-          if (!this._secondaryIndexNames.includes(index)) throw new Error(IndexedDbStore.errorMsgs.MISSING_SECONDARY_INDEX)
+          if (!this._secondaryIndexNames.includes(index)) throw new Error(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
           // Use index to retrieve a record
           const dbIndex = store.index(index)
           getRequest = dbIndex.getAll(IDBKeyRange.only(key))
@@ -1128,7 +1128,7 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
         let addRequest = store.add(record) // eslint-disable-line prefer-const
         addRequest.onerror = () => {
           if (addRequest.error.name === 'ConstraintError') {
-            reject(new Error(IndexedDbStore.errorMsgs.DUPLICATE_RECORD))
+            reject(new Error(IndexedDbStore.errMsgs.DUPLICATE_RECORD))
           }
           reject(addRequest.error)
         }
@@ -1182,7 +1182,7 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
   }
 }
 
-IndexedDbStore.errorMsgs = {
+IndexedDbStore.errMsgs = {
   NO_DB: 'Store is not associated with a DB',
   NO_STORE_NAME: 'A store name is missing from a configuration',
   NO_PRIMARY_INDEX: 'A primaryIndex tree is missing from a configuration',
@@ -1331,8 +1331,8 @@ class Storage {
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error('Storage name is missing from a configuration')
-    if (!configuration.version) throw new Error('Storage version is missing from a configuration')
+    if (!configuration.name) throw new Error(Storage.errMsgs.CONF_NO_NAME)
+    if (!configuration.version) throw new Error(Storage.errMsgs.CONF_NO_VER)
   }
 
   /**
@@ -1398,6 +1398,11 @@ class Storage {
   }
 }
 
+Storage.errMsgs = {
+  CONF_NO_NAME: 'Storage name is missing from a configuration',
+  CONF_NO_VER: 'Storage version is missing from a configuration'
+}
+
 
 /***/ }),
 
@@ -1440,7 +1445,7 @@ class Store {
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error('A store name is missing from a configuration')
+    if (!configuration.name) throw new Error(Store.errMsgs.CONF_NO_NAME)
   }
 
   /**
@@ -1582,6 +1587,10 @@ class Store {
 Store.accessModes = {
   READ: 'readonly',
   READ_WRITE: 'readwrite'
+}
+
+Store.errMsgs = {
+  CONF_NO_NAME: 'A store name is missing from a configuration'
 }
 
 

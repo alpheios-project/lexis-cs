@@ -12,7 +12,7 @@ describe('Store class', () => {
   })
 
   it('constructor: configuration must have a name prop', () => {
-    expect(() => new Store(incorrectConfig)).toThrowError('A store name is missing from a configuration')
+    expect(() => new Store(incorrectConfig)).toThrowError(Store.errMsgs.CONF_NO_NAME)
   })
 
   it('associateWith: must return an instance reference', () => {

@@ -27,7 +27,7 @@ export default class Store {
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error('A store name is missing from a configuration')
+    if (!configuration.name) throw new Error(Store.errMsgs.CONF_NO_NAME)
   }
 
   /**
@@ -169,4 +169,8 @@ export default class Store {
 Store.accessModes = {
   READ: 'readonly',
   READ_WRITE: 'readwrite'
+}
+
+Store.errMsgs = {
+  CONF_NO_NAME: 'A store name is missing from a configuration'
 }

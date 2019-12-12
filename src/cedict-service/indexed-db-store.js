@@ -32,12 +32,12 @@ export default class IndexedDbStore extends Store {
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error(IndexedDbStore.errorMsgs.NO_STORE_NAME)
-    if (!configuration.primaryIndex) throw new Error(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX)
+    if (!configuration.name) throw new Error(IndexedDbStore.errMsgs.NO_STORE_NAME)
+    if (!configuration.primaryIndex) throw new Error(IndexedDbStore.errMsgs.NO_PRIMARY_INDEX)
     if (
       !configuration.primaryIndex.hasOwnProperty('keyPath') &&
       !configuration.primaryIndex.hasOwnProperty('auto')
-    ) throw new Error(IndexedDbStore.errorMsgs.NO_PRIMARY_INDEX_PROPS)
+    ) throw new Error(IndexedDbStore.errMsgs.NO_PRIMARY_INDEX_PROPS)
   }
 
   /**
@@ -67,7 +67,7 @@ export default class IndexedDbStore extends Store {
    * @private
    */
   _assertDb () {
-    if (!this._db) throw new Error(IndexedDbStore.errorMsgs.NO_DB)
+    if (!this._db) throw new Error(IndexedDbStore.errMsgs.NO_DB)
   }
 
   /**
@@ -152,7 +152,7 @@ export default class IndexedDbStore extends Store {
    *          exist in a store or with an empty array if not. A promise rejection is returned if operation failed.
    */
   async get (key, options = {}) {
-    if (key === undefined) throw new Error(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED)
+    if (key === undefined) throw new Error(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
     return this.getEntries([key], options).then((result) => result[key])
   }
 
@@ -171,9 +171,9 @@ export default class IndexedDbStore extends Store {
   getEntries (keys, { index = undefined } = {}) {
     return new Promise((resolve, reject) => {
       this._assertDb()
-      if (keys === undefined) reject(new Error(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED))
+      if (keys === undefined) reject(new Error(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED))
       if (!Array.isArray(keys)) keys = [keys]
-      if (keys.length === 0) reject(new Error(IndexedDbStore.errorMsgs.NO_KEYS_PROVIDED))
+      if (keys.length === 0) reject(new Error(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED))
       const transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ)
       const store = transaction.objectStore(this._configuration.name)
       // Create an object with keys as its props
@@ -190,7 +190,7 @@ export default class IndexedDbStore extends Store {
           getRequest = store.getAll(IDBKeyRange.only(key))
         } else {
           // Check if secondary index is valid
-          if (!this._secondaryIndexNames.includes(index)) throw new Error(IndexedDbStore.errorMsgs.MISSING_SECONDARY_INDEX)
+          if (!this._secondaryIndexNames.includes(index)) throw new Error(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
           // Use index to retrieve a record
           const dbIndex = store.index(index)
           getRequest = dbIndex.getAll(IDBKeyRange.only(key))
@@ -248,7 +248,7 @@ export default class IndexedDbStore extends Store {
         let addRequest = store.add(record) // eslint-disable-line prefer-const
         addRequest.onerror = () => {
           if (addRequest.error.name === 'ConstraintError') {
-            reject(new Error(IndexedDbStore.errorMsgs.DUPLICATE_RECORD))
+            reject(new Error(IndexedDbStore.errMsgs.DUPLICATE_RECORD))
           }
           reject(addRequest.error)
         }
@@ -302,7 +302,7 @@ export default class IndexedDbStore extends Store {
   }
 }
 
-IndexedDbStore.errorMsgs = {
+IndexedDbStore.errMsgs = {
   NO_DB: 'Store is not associated with a DB',
   NO_STORE_NAME: 'A store name is missing from a configuration',
   NO_PRIMARY_INDEX: 'A primaryIndex tree is missing from a configuration',

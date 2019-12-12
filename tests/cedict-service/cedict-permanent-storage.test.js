@@ -84,15 +84,15 @@ describe('CedictPermanentStorage class', () => {
   })
 
   it('constructor: configuration must have a name prop', () => {
-    expect(() => new CedictPermanentStorage(noNameConfig)).toThrowError(CedictPermanentStorage.errorMsgs.NO_STORAGE_NAME)
+    expect(() => new CedictPermanentStorage(noNameConfig)).toThrowError(CedictPermanentStorage.errMsgs.NO_STORAGE_NAME)
   })
 
   it('constructor: configuration must have a version prop', () => {
-    expect(() => new CedictPermanentStorage(noVersionConfig)).toThrowError(CedictPermanentStorage.errorMsgs.NO_STORAGE_VERSION)
+    expect(() => new CedictPermanentStorage(noVersionConfig)).toThrowError(CedictPermanentStorage.errMsgs.NO_STORAGE_VERSION)
   })
 
   it('constructor: configuration must have a stores tree', () => {
-    expect(() => new CedictPermanentStorage(noStoresConfig)).toThrowError(CedictPermanentStorage.errorMsgs.NO_STORES)
+    expect(() => new CedictPermanentStorage(noStoresConfig)).toThrowError(CedictPermanentStorage.errMsgs.NO_STORES)
   })
 
   it('hasStore: a check for an existing store', async () => {
@@ -115,13 +115,13 @@ describe('CedictPermanentStorage class', () => {
   it('getStore: throws an error if store does not exist', async () => {
     const storage = new CedictPermanentStorage(configuration)
     await storage.connect()
-    await expect(() => storage.getStore('non existent store')).toThrowError(CedictPermanentStorage.errorMsgs.MISSING_STORE)
+    await expect(() => storage.getStore('non existent store')).toThrowError(CedictPermanentStorage.errMsgs.MISSING_STORE)
     await storage.disconnect()
   })
 
   it('getStore: throws an error if database connection is closed', async () => {
     const storage = new CedictPermanentStorage(configuration)
-    await expect(() => storage.getStore(configuration.stores.meta.name)).toThrowError(CedictPermanentStorage.errorMsgs.CLOSED_CONNECTION)
+    await expect(() => storage.getStore(configuration.stores.meta.name)).toThrowError(CedictPermanentStorage.errMsgs.CLOSED_CONNECTION)
   })
 
   it('getIntegrityData: returns number of records and metadata', async () => {
@@ -143,7 +143,7 @@ describe('CedictPermanentStorage class', () => {
     const storage = new CedictPermanentStorage(configuration)
     await storage.connect()
     await storage.getStore(configuration.stores.dictionary.name).insert([dictRecordOne, dictRecordTwo])
-    await expect(storage.getIntegrityData()).rejects.toThrowError(CedictPermanentStorage.errorMsgs.NO_META)
+    await expect(storage.getIntegrityData()).rejects.toThrowError(CedictPermanentStorage.errMsgs.NO_META)
     // Clear the storage
     await storage.clear()
     await storage.disconnect()

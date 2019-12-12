@@ -17,8 +17,8 @@ export default class Storage {
    * @private
    */
   static _checkConfiguration (configuration) {
-    if (!configuration.name) throw new Error('Storage name is missing from a configuration')
-    if (!configuration.version) throw new Error('Storage version is missing from a configuration')
+    if (!configuration.name) throw new Error(Storage.errMsgs.CONF_NO_NAME)
+    if (!configuration.version) throw new Error(Storage.errMsgs.CONF_NO_VER)
   }
 
   /**
@@ -82,4 +82,9 @@ export default class Storage {
       resolve({})
     })
   }
+}
+
+Storage.errMsgs = {
+  CONF_NO_NAME: 'Storage name is missing from a configuration',
+  CONF_NO_VER: 'Storage version is missing from a configuration'
 }

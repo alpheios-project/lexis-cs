@@ -178,7 +178,7 @@ describe('CedictPermanentStorage class', () => {
     await cedict.removePermanentData()
     // so we'll need to reopen it
     await cedict._storage.connect()
-    await expect(cedict._storage.getIntegrityData()).rejects.toThrowError(CedictPermanentStorage.errorMsgs.NO_META)
+    await expect(cedict._storage.getIntegrityData()).rejects.toThrowError(CedictPermanentStorage.errMsgs.NO_META)
     await cedict._storage.disconnect()
   })
 
