@@ -65,11 +65,11 @@ export default class MessagingService {
       return
     }
 
-    if (!this._messages.has(message.requestHeader.ID)) {
-      console.error(`Ignoring a message with request ID ${message.requestHeader.ID} not registered in a request list`, message)
+    if (!this._messages.has(message.requestID)) {
+      console.error(`Ignoring a message with request ID ${message.requestID} not registered in a request list`, message)
       return
     }
-    const requestInfo = this._messages.get(message.requestHeader.ID)
+    const requestInfo = this._messages.get(message.requestID)
     window.clearTimeout(requestInfo.timeoutID) // Clear a timeout
     const responseCode = message.responseCode
 
@@ -80,7 +80,7 @@ export default class MessagingService {
       // Request was processed without errors
       requestInfo.resolve(message)
     }
-    this._messages.delete(message.requestHeader.ID) // Remove request info from the map
+    this._messages.delete(message.requestID) // Remove request info from the map
   }
 
   /**

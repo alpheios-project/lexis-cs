@@ -1,0 +1,100 @@
+{
+  "metadata": {
+    "name": "CC-CEDICT",
+    "description": "Community maintained free Chinese-English dictionary.",
+    "licenseName": "Creative Commons Attribution-ShareAlike 4.0 International License",
+    "licenseURI": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "referencedWorks": [
+      "CEDICT - Copyright (C) 1997, 1998 Paul Andrew Denisowski"
+    ],
+    "downloadURI": "https://www.mdbg.net/chinese/dictionary?page=cc-cedict",
+    "editorURI": "https://cc-cedict.org/editor/editor.php",
+    "referenceURI": "https://cc-cedict.org/wiki/",
+    "originalVersion": "1",
+    "originalSubversion": "0",
+    "originalFormat": "ts",
+    "originalCharset": "UTF-8",
+    "publisher": "MDBG",
+    "version": 20191029,
+    "revision": 1,
+    "dateTime": "2019-10-29T06:16:52.000Z",
+    "chunkNumber": 4
+  },
+  "entries": [
+    {
+      "index": 108829,
+      "type": "not specified",
+      "traditionalHeadword": "隱顯",
+      "simplifiedHeadword": "隐显",
+      "pinyin": "yin3 xian3",
+      "descriptions": [
+        "appearing and disappearing",
+        "dimly visible",
+        "intermittent",
+        "implicit (but not clearly present)"
+      ]
+    },
+    {
+      "index": 108830,
+      "type": "not specified",
+      "traditionalHeadword": "隱顯目標",
+      "simplifiedHeadword": "隐显目标",
+      "pinyin": "yin3 xian3 mu4 biao1",
+      "descriptions": [
+        "intermittent target"
+      ]
+    },
+    {
+      "index": 108831,
+      "type": "not specified",
+      "traditionalHeadword": "隱顴",
+      "simplifiedHeadword": "隐颧",
+      "pinyin": "yin3 quan2",
+      "descriptions": [
+        "a skull with sunken cheek bone",
+        "cryptozygous"
+      ]
+    },
+    {
+      "index": 108832,
+      "type": "not specified",
+      "traditionalHeadword": "隱飾",
+      "simplifiedHeadword": "隐饰",
+      "pinyin": "yin3 shi4",
+      "descriptions": [
+        "a cover-up"
+      ]
+    },
+    {
+      "index": 108833,
+      "type": "not specified",
+      "traditionalHeadword": "隱龜",
+      "simplifiedHeadword": "隐龟",
+      "pinyin": "yin3 gui1",
+      "descriptions": [
+        "Mary River turtle (Elusor macrurus)"
+      ]
+    },
+    {
+      "index": 108834,
+      "type": "not specified",
+      "traditionalHeadword": "隳",
+      "simplifiedHeadword": "隳",
+      "pinyin": "hui1",
+      "descriptions": [
+        "destroy",
+        "overthrow"
+      ]
+    },
+    {
+      "index": 108835,
+      "type": "not specified",
+      "traditionalHeadword": "隴",
+      "simplifiedHeadword": "陇",
+      "pinyin": "Long3",
+      "descriptions": [
+        "short name for Gansu province 甘肅省|甘肃省[Gan1 su4 Sheng3]"
+      ]
+    }
+  ]
+}

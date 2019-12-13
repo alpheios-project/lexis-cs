@@ -8,9 +8,10 @@ export default class Destination {
    * Creates an instance of a Destination object. Descendants may take configuration parameters through
    * a second argument that they can define.
    *
-   * @param {string} name - A name of a particular destination.
+   * @param {object} [configuration={}] - A configuration object for a destination.
+   * @param {string} configuration.name - A name of a particular destination.
    */
-  constructor ({ name }) {
+  constructor ({ name } = {}) {
     if (!name) {
       throw new Error('Destination name is missing')
     }

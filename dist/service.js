@@ -216,132 +216,14 @@ module.exports = v4;
 
 /***/ }),
 
-/***/ "./src/cedict-service/cedict-data.js":
-/*!*******************************************!*\
-  !*** ./src/cedict-service/cedict-data.js ***!
-  \*******************************************/
-/*! exports provided: default */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+/***/ "./src/cedict-service/cedict.js":
+/*!**************************************!*\
+  !*** ./src/cedict-service/cedict.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
 
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return CedictData; });
-/**
- * @module CedictData
- */
-
-/** A class to serve data from CEDICT */
-class CedictData {
-  /**
-   * @param {object} schema - An object that describes a configuration of a CEDICT data object.
-   */
-  constructor (schema) {
-    this._schema = schema
-
-    /**
-     * Whether the object is ready to serve data or not.
-     *
-     * @type {boolean}
-     */
-    this.isReady = false
-
-    /**
-     * If CEDICT be stored in memory this object will hold all its data.
-     *
-     * @type {{entries: [], meta: {}}}
-     */
-    this.cedict = {
-      // A dictionary's metadata
-      meta: {},
-      // An array of dictionary records
-      entries: []
-    }
-  }
-
-  /**
-   * Initializes a data object.
-   *
-   * @returns {Promise<undefined> | Promise<Error>} - A promise
-   */
-  init () {
-    return this.updateFromServer()
-  }
-
-  /**
-   * Returns one or several records from CEDICT dictionary for one or several Chinese words.
-   *
-   * @param {[string]} words - An array of Chinese words.
-   * @param {string} characterForm - A string constant that specifies
-   *        a character form in words (simplified or traditional).
-   * @returns {object} - Returns an object whose keys are the words requested and values are arrays of CEDICT records
-   *          that has those words.
-   */
-  getWords (words, characterForm) {
-    if (!words || !this._hasData) {
-      // No records can be found.
-      return []
-    }
-
-    // If a single word value is provided, convert it into an array.
-    if (!Array.isArray(words)) { words = [words] }
-
-    // Create an object with props for the words
-    let result = words.reduce((accumulator, key) => { accumulator[key] = []; return accumulator }, {}) // eslint-disable-line prefer-const
-
-    this.cedict.entries.forEach(entry => {
-      const hw = (characterForm === CedictData.characterForms.SIMPLIFIED) ? entry.simplifiedHeadword : entry.traditionalHeadword
-      words.forEach(word => {
-        if (hw === word) {
-          result[word].push(entry)
-        }
-      })
-    })
-    return result
-  }
-
-  /**
-   * Checks wither CEDICT dictionary has any data in it.
-   *
-   * @returns {boolean} - True if there is any dictionary records in the data object or false if otherwise.
-   * @private
-   */
-  get _hasData () {
-    return this.cedict.entries.length > 0
-  }
-
-  /**
-   * Loads fresh CEDICT data from a remote server.
-   *
-   * @returns {Promise<undefined> | Promise<Error>} - Returns a promise that will be resolved with undefined
-   *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
-   */
-  updateFromServer () {
-    const requests = this._schema.data.chunks.map(chunk => this.loadJson(`${this._schema.data.URI}/${chunk}`))
-    return Promise.all(requests).then(chunks => {
-      this.cedict.meta = chunks[0].meta
-      this.cedict.entries = chunks.map(piece => piece.entries).flat()
-      this.isReady = true
-    })
-  }
-
-  /**
-   * Loads a single JSON file from a specified URL and decodes it.
-   *
-   * @param {string} url - A strings that specifies a URL of a JSON file
-   * @returns {Promise<object>|Promise<Error>} - A promise that is resolved with a JSON object or
-   *          rejected with the error.
-   */
-  loadJson (url) {
-    return fetch(url).then(response => response.json())
-  }
-}
-
-// TODO: Shall probably move this to data models
-CedictData.characterForms = {
-  SIMPLIFIED: 'simplified',
-  TRADITIONAL: 'traditional'
-}
-
+throw new Error("Module parse failed: Unexpected character '#' (8:2)\nFile was processed with these loaders:\n * ./node_modules/source-map-loader/index.js\nYou may need an additional loader to handle the result of these loaders.\n| /** A class to serve data from CEDICT */\n| export default class Cedict {\n>   #privateField\n|   /**\n|    * @param {object} configuration - An object that describes a configuration of a CEDICT data object.");
 
 /***/ }),
 
@@ -349,21 +231,25 @@ CedictData.characterForms = {
 /*!***************************************!*\
   !*** ./src/cedict-service/service.js ***!
   \***************************************/
-/*! exports provided: default */
+/*! exports provided: CedictDestinationConfig, CedictCharacterForms */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictDestinationConfig", function() { return CedictDestinationConfig; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictCharacterForms", function() { return CedictCharacterForms; });
 /* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
 /* harmony import */ var _lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/messages/response-message.js */ "./src/messaging/messages/response-message.js");
 /* harmony import */ var _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-iframe-destination.js */ "./src/messaging/destinations/window-iframe-destination.js");
-/* harmony import */ var _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @lexisCs/cedict-service/cedict-data.js */ "./src/cedict-service/cedict-data.js");
-/* harmony import */ var _lexisCs_schemas_cedict_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @lexisCs/schemas/cedict.js */ "./src/schemas/cedict.js");
+/* harmony import */ var _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @lexisCs/cedict-service/cedict.js */ "./src/cedict-service/cedict.js");
+/* harmony import */ var _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(_lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _lexisCs_configurations_cedict_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @lexisCs/configurations/cedict.js */ "./src/configurations/cedict.js");
 
 
 
 
 
+const CedictCharacterForms = _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3___default.a.characterForms
 
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
@@ -378,8 +264,40 @@ const CedictDestinationConfig = {
 
 let cedictData
 
+/*
+NOTE: The request/response format described below is temporary and will change in phase three.
+After discussion we decided to add more flexibility for the client in specifying what data it wants to get back.
+
+CEDICT service receive request in the following format:
+{
+  getWords: {
+    words: words,
+    characterForm: characterForm
+  }
+}, where:
+  getWords is a type of incoming request;
+  words contains an array of words to retrieve;
+  characterForm specifies a Chinese character form that will be used during lookups.
+  If character form is not known, it can be omitted. In that case CEDICT service will
+  check records for traditional Chinese first and, if any matches are found, will return it back.
+  If nothing is found within a traditional Chinese, it will look in a simplified one.
+  Results for only one character form or no results at all, if no matches are found, will be returned.
+
+Results will be returned in the following format.
+
+If any matches are found:
+{
+    characterForm: {
+        word1: [array of records],
+        word2: [an empty array if no records are found for this word]
+    }
+}
+
+If no matches are found an empty object will be returned:
+{}
+ */
+
 const messageHandler = (request, responseFn) => {
-  let response
   if (!cedictData.isReady) {
     responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Uninitialized')))
     return
@@ -387,25 +305,182 @@ const messageHandler = (request, responseFn) => {
 
   if (request.body.getWords) {
     // This is a get words request
-    response = cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
-    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Success(request, response))
+    cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
+      .then((result) => {
+        responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Success(request, result))
+      }).catch((error) => responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, error)))
   } else {
     responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Unsupported request')))
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](_lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"].config.CEDICT))
+  const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](CedictDestinationConfig))
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
-  cedictData = new _lexisCs_cedict_service_cedict_data_js__WEBPACK_IMPORTED_MODULE_3__["default"](_lexisCs_schemas_cedict_js__WEBPACK_IMPORTED_MODULE_4__["default"])
+  try {
+    cedictData = new _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3___default.a(_lexisCs_configurations_cedict_js__WEBPACK_IMPORTED_MODULE_4__["default"])
+  } catch (error) {
+    console.error(error)
+    return
+  }
   cedictData.init().then(() => {
     // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
   }).catch((error) => console.error(error))
 })
 
-/* harmony default export */ __webpack_exports__["default"] = (CedictDestinationConfig);
+
+
+
+/***/ }),
+
+/***/ "./src/configurations/cedict.js":
+/*!**************************************!*\
+  !*** ./src/configurations/cedict.js ***!
+  \**************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/*
+This object defines a configuration of a CEDICT service. We could have several configuration
+files each targeted for a specific platform or purpose and specify a proper configuration
+upon the service initialization.
+ */
+const cedict = {
+  /*
+  An information about how CEDICT data is stored within the CEDICT service.
+   */
+  storage: {
+    name: 'cedict',
+    /*
+    Version defines a configuration of a storage schema, e.g. what tables are used to store data,
+    what fields do they have, etc.
+     */
+    version: 1,
+    stores: {
+      /*
+      A store to keep metadata about a dictionary. It will have only one entry with the metadata object.
+       */
+      meta: {
+        name: 'meta',
+        primaryIndex: {
+          auto: true
+        }
+      },
+
+      /*
+      This is a store that keeps dictionary entries themselves.
+       */
+      dictionary: {
+        name: 'dictionary',
+        primaryIndex: {
+          /*
+          What property of a dictionary entry will become a primary index.
+           */
+          keyPath: 'index'
+        },
+
+        /*
+        The following defines the secondary indexes. The name of an index is used to address it
+        during queries. keyPath defines what prop of a dictionary entry will be used to build an index.
+         */
+        indexes: {
+          traditional: {
+            name: 'traditionalHwIdx',
+            keyPath: 'traditionalHeadword',
+            unique: false
+          },
+          simplified: {
+            name: 'simplifiedHwIdx',
+            keyPath: 'simplifiedHeadword',
+            unique: false
+          }
+        },
+        volatileStorage: {
+          /*
+          If volatile storage is disabled, all queries will run against an IndexedDB. This will minimize
+          RAM usage and is fast enough for most purposes (from several to tens of milliseconds). Enabling
+          volatile storage will place data into RAM and data will be retrieved faster at cost of a higher
+          RAM usage.
+           */
+          enabled: false,
+
+          /*
+          If volatile storage is indexed it will create additional in-memory maps to store headword indexes.
+          It will result in almost instantaneous retrieval of data at cost of a higher RAM usage.
+           */
+          indexed: false
+        },
+        permanentStorage: {
+          /*
+          With permanents storage enabled all CEDICT data will be saved into an IndexedDB and will stay there
+          between page reloads. This will allow not to download all CEDICT data each time the CEDICT service
+          is started. It will decrease a service start time significantly (by tens of seconds, usually).It
+          will also spare several megabytes of network traffic.
+
+          With permanent storage enabled clients will be able to run searches directly against an IndexedDB
+          thus keeping RAM usage at a minimum.
+
+          It is highly recommended to have permanent storage always enabled except for cases when
+          a target device does not support it.
+
+          Please note: even if permanent storage is disabled, it will still be created in order to
+          put downloaded data into it and to avoid downloading it again with each service initialization.
+           */
+          enabled: true,
+
+          /*
+          (Currently not implemented.)
+          Disabling permanent store indexes will slow searches down significantly (up to more than a second).
+          On the other hand, having indexes enabled to not increase IndexedDB size significantly.
+          Because of that it is recommended to always have this option on.
+           */
+          indexed: true
+        }
+      }
+    }
+  },
+
+  /*
+  Describes CEDICT data on a remote server that is required to run the current version of CEDICT service.
+   */
+  data: {
+    /*
+    The date when CEDICT data was last edited.
+     */
+    version: 20191029,
+
+    /*
+    If data will be updated more than once a day revision will increment with each edition.
+     */
+    revision: 1,
+
+    /*
+    Number of records in the current CEDICT edition. It is used for integrity checking.
+     */
+    recordsCount: 117735,
+
+    /*
+    A URI where chunks of CEDICT data are located.
+     */
+    URI: 'http://data-dev.alpheios.net/cedict',
+
+    /*
+    Names of the chunks themselves.
+     */
+    chunks: [
+      'cedict-v20191029-c001.json',
+      'cedict-v20191029-c002.json',
+      'cedict-v20191029-c003.json',
+      'cedict-v20191029-c004.json'
+    ]
+  }
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (cedict);
 
 
 /***/ }),
@@ -430,9 +505,10 @@ class Destination {
    * Creates an instance of a Destination object. Descendants may take configuration parameters through
    * a second argument that they can define.
    *
-   * @param {string} name - A name of a particular destination.
+   * @param {object} [configuration={}] - A configuration object for a destination.
+   * @param {string} configuration.name - A name of a particular destination.
    */
-  constructor ({ name }) {
+  constructor ({ name } = {}) {
     if (!name) {
       throw new Error('Destination name is missing')
     }
@@ -486,9 +562,10 @@ __webpack_require__.r(__webpack_exports__);
 /** WindowIframeDestination represents a content window within an iframe */
 class WindowIframeDestination extends _lexisCs_messaging_destinations_destination_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
   /**
-   * @param {string} name - A name of a destination (for addressing a destination in a messaging service).
-   * @param {string} targetURL - A URL of a document within an iframe where messages will be sent.
-   * @param {string} targetIframeID - An ID of an iframe element (without `#`).
+   * @param {object} [configuration={}] - An object containing configuration parameters.
+   * @param {string} configuration.name - A name of a destination (for addressing a destination in a messaging service).
+   * @param {string} configuration.targetURL - A URL of a document within an iframe where messages will be sent.
+   * @param {string} configuration.targetIframeID - An ID of an iframe element (without `#`).
    */
   constructor ({ name, targetURL, targetIframeID } = {}) {
     super({ name })
@@ -612,9 +689,9 @@ __webpack_require__.r(__webpack_exports__);
 /** A base class for all types of messages */
 class Message {
   /**
-   * @param {object} body - A plain JS object (with no methods) representing a body of the message.
+   * @param {object} [body={}] - A plain JS object (with no methods) representing a body of the message.
    */
-  constructor (body) {
+  constructor (body = {}) {
     /**
      * A message's role (@see {@link Message.roles}). Will be defined in descendants.
      *
@@ -663,6 +740,43 @@ Message.types = {
 
 /***/ }),
 
+/***/ "./src/messaging/messages/request-message.js":
+/*!***************************************************!*\
+  !*** ./src/messaging/messages/request-message.js ***!
+  \***************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return RequestMessage; });
+/* harmony import */ var _message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./message.js */ "./src/messaging/messages/message.js");
+/**
+ * @module RequestMessage
+ */
+
+
+/** A request message */
+class RequestMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  /**
+   * @param {object} [body={}] - A plain JS object (with no methods) representing a body of the message.
+   */
+  constructor (body = {}) {
+    super(body)
+    this.role = _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.REQUEST
+
+    /**
+     * A message header. Will contain routing information usually.
+     *
+     * @type {object}
+     */
+    this.header = {}
+  }
+}
+
+
+/***/ }),
+
 /***/ "./src/messaging/messages/response-message.js":
 /*!****************************************************!*\
   !*** ./src/messaging/messages/response-message.js ***!
@@ -673,24 +787,28 @@ Message.types = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return ResponseMessage; });
-/* harmony import */ var _message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./message.js */ "./src/messaging/messages/message.js");
+/* harmony import */ var _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messages/message.js */ "./src/messaging/messages/message.js");
+/* harmony import */ var _lexisCs_messaging_messages_request_message_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/messages/request-message.js */ "./src/messaging/messages/request-message.js");
 /**
  * @module ResponseMessage
  */
 
 
+
 /** A response message that is sent as an answer to the request message. */
-class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class ResponseMessage extends _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
   /**
    * @param {RequestMessage} request - A request that initiated this response. Used to copy routing information mostly.
-   * @param {object} body - A body of the response, a plain JS object with no methods.
+   * @param {object} [body={}] - A body of the response, a plain JS object with no methods.
    * @param {string} responseCode - A code to indicate results of the request handling: Success, Failure, etc.
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
     super(body)
-    this.role = _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE
+    if (!request) throw new Error('Request is not provided')
+    if (!request.ID) throw new Error('Request has no ID')
+    this.role = _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE
     this.requestHeader = request.header || {}
-    this.requestHeader.ID = request.ID // ID of the request to match request and response
+    this.requestID = request.ID // ID of the request to match request and response
     this.responseCode = responseCode
   }
 
@@ -698,11 +816,11 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
    * A builder for a response message with a SUCCESS response code.
    *
    * @param {RequestMessage} request - An original request.
-   * @param {object} body - A body of response message.
+   * @param {object} [body={}] - A body of response message.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
-  static Success (request, body) {
+  static Success (request, body = {}) {
     return new this(request, body, ResponseMessage.responseCodes.SUCCESS)
   }
 
@@ -712,7 +830,7 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
    * @param {RequestMessage} request - An original request.
    * @param {Error} error - An error object containing error information.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
   static Error (request, error) {
     return new this(request, error, ResponseMessage.responseCodes.ERROR)
@@ -726,9 +844,9 @@ class ResponseMessage extends _message_js__WEBPACK_IMPORTED_MODULE_0__["default"
    */
   static isResponse (message) {
     return message.role &&
-      message.role === _message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE &&
+      message.role === _lexisCs_messaging_messages_message_js__WEBPACK_IMPORTED_MODULE_0__["default"].roles.RESPONSE &&
       message.requestHeader &&
-      message.requestHeader.ID
+      message.requestID
   }
 }
 
@@ -829,11 +947,11 @@ class MessagingService {
       return
     }
 
-    if (!this._messages.has(message.requestHeader.ID)) {
-      console.error(`Ignoring a message with request ID ${message.requestHeader.ID} not registered in a request list`, message)
+    if (!this._messages.has(message.requestID)) {
+      console.error(`Ignoring a message with request ID ${message.requestID} not registered in a request list`, message)
       return
     }
-    const requestInfo = this._messages.get(message.requestHeader.ID)
+    const requestInfo = this._messages.get(message.requestID)
     window.clearTimeout(requestInfo.timeoutID) // Clear a timeout
     const responseCode = message.responseCode
 
@@ -844,7 +962,7 @@ class MessagingService {
       // Request was processed without errors
       requestInfo.resolve(message)
     }
-    this._messages.delete(message.requestHeader.ID) // Remove request info from the map
+    this._messages.delete(message.requestID) // Remove request info from the map
   }
 
   /**
@@ -952,55 +1070,6 @@ class StoredRequest {
     this.reject = reject
   }
 }
-
-
-/***/ }),
-
-/***/ "./src/schemas/cedict.js":
-/*!*******************************!*\
-  !*** ./src/schemas/cedict.js ***!
-  \*******************************/
-/*! exports provided: default */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-const cedict = {
-  db: {
-    name: 'AlpheiosCedict',
-    version: 1,
-    stores: {
-      cedictData: {
-        name: 'cedictData',
-        indexes: {
-          traditional: {
-            name: 'traditionalHwIdx',
-            keyPath: 'traditionalHeadword',
-            unique: false
-          },
-          simplified: {
-            name: 'simplifiedHwIdx',
-            keyPath: 'simplifiedHeadword',
-            unique: false
-          }
-        }
-      }
-    }
-  },
-  data: {
-    version: 20191029,
-    revision: 1,
-    URI: 'http://data-dev.alpheios.net/cedict',
-    chunks: [
-      'cedict-v20191029-c001.json',
-      'cedict-v20191029-c002.json',
-      'cedict-v20191029-c003.json',
-      'cedict-v20191029-c004.json'
-    ]
-  }
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (cedict);
 
 
 /***/ })

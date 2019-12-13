@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "name": "CC-CEDICT",
+    "description": "Community maintained free Chinese-English dictionary.",
+    "licenseName": "Creative Commons Attribution-ShareAlike 4.0 International License",
+    "licenseURI": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "referencedWorks": [
+      "CEDICT - Copyright (C) 1997, 1998 Paul Andrew Denisowski"
+    ],
+    "downloadURI": "https://www.mdbg.net/chinese/dictionary?page=cc-cedict",
+    "editorURI": "https://cc-cedict.org/editor/editor.php",
+    "referenceURI": "https://cc-cedict.org/wiki/",
+    "originalVersion": "1",
+    "originalSubversion": "0",
+    "originalFormat": "ts",
+    "originalCharset": "UTF-8",
+    "publisher": "MDBG",
+    "version": 20191029,
+    "revision": 1,
+    "dateTime": "2019-10-29T06:16:52.000Z",
+    "chunkNumber": 3
+  },
+  "entries": [
+    {
+      "index": 72262,
+      "type": "not specified",
+      "traditionalHeadword": "白眉藍姬鶲",
+      "simplifiedHeadword": "白眉蓝姬鹟",
+      "pinyin": "bai2 mei2 lan2 ji1 weng1",
+      "descriptions": [
+        "(bird species of China) ultramarine flycatcher (Ficedula superciliaris)"
+      ]
+    },
+    {
+      "index": 72263,
+      "type": "not specified",
+      "traditionalHeadword": "白眉赤眼",
+      "simplifiedHeadword": "白眉赤眼",
+      "pinyin": "bai2 mei2 chi4 yan3",
+      "descriptions": [
+        "for no reason (idiom)"
+      ]
+    },
+    {
+      "index": 72264,
+      "type": "not specified",
+      "traditionalHeadword": "白眉雀鶥",
+      "simplifiedHeadword": "白眉雀鹛",
+      "pinyin": "bai2 mei2 que4 mei2",
+      "descriptions": [
+        "(bird species of China) white-browed fulvetta (Fulvetta vinipectus)"
+      ]
+    },
+    {
+      "index": 72265,
+      "type": "not specified",
+      "traditionalHeadword": "白眉鴨",
+      "simplifiedHeadword": "白眉鸭",
+      "pinyin": "bai2 mei2 ya1",
+      "descriptions": [
+        "(bird species of China) garganey (Anas querquedula)"
+      ]
+    },
+    {
+      "index": 72266,
+      "type": "not specified",
+      "traditionalHeadword": "白眉鵐",
+      "simplifiedHeadword": "白眉鹀",
+      "pinyin": "bai2 mei2 wu2",
+      "descriptions": [
+        "(bird species of China) Tristram's bunting (Emberiza tristrami)"
+      ]
+    },
+    {
+      "index": 72267,
+      "type": "not specified",
+      "traditionalHeadword": "白眉鶇",
+      "simplifiedHeadword": "白眉鸫",
+      "pinyin": "bai2 mei2 dong1",
+      "descriptions": [
+        "(bird species of China) eyebrowed thrush (Turdus obscurus)"
+      ]
+    },
+    {
+      "index": 72268,
+      "type": "not specified",
+      "traditionalHeadword": "白眶斑翅鶥",
+      "simplifiedHeadword": "白眶斑翅鹛",
+      "pinyin": "bai2 kuang4 ban1 chi4 mei2",
+      "descriptions": [
+        "(bird species of China) spectacled barwing (Actinodura ramsayi)"
+      ]
+    }
+  ]
+}

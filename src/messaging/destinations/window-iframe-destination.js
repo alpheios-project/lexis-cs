@@ -6,9 +6,10 @@ import Destination from '@lexisCs/messaging/destinations/destination.js'
 /** WindowIframeDestination represents a content window within an iframe */
 export default class WindowIframeDestination extends Destination {
   /**
-   * @param {string} name - A name of a destination (for addressing a destination in a messaging service).
-   * @param {string} targetURL - A URL of a document within an iframe where messages will be sent.
-   * @param {string} targetIframeID - An ID of an iframe element (without `#`).
+   * @param {object} [configuration={}] - An object containing configuration parameters.
+   * @param {string} configuration.name - A name of a destination (for addressing a destination in a messaging service).
+   * @param {string} configuration.targetURL - A URL of a document within an iframe where messages will be sent.
+   * @param {string} configuration.targetIframeID - An ID of an iframe element (without `#`).
    */
   constructor ({ name, targetURL, targetIframeID } = {}) {
     super({ name })

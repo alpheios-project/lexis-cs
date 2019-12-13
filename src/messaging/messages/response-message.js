@@ -1,20 +1,23 @@
 /**
  * @module ResponseMessage
  */
-import Message from './message.js'
+import Message from '@lexisCs/messaging/messages/message.js'
+import RequestMessage from '@lexisCs/messaging/messages/request-message.js'
 
 /** A response message that is sent as an answer to the request message. */
 export default class ResponseMessage extends Message {
   /**
    * @param {RequestMessage} request - A request that initiated this response. Used to copy routing information mostly.
-   * @param {object} body - A body of the response, a plain JS object with no methods.
+   * @param {object} [body={}] - A body of the response, a plain JS object with no methods.
    * @param {string} responseCode - A code to indicate results of the request handling: Success, Failure, etc.
    */
   constructor (request, body = {}, responseCode = ResponseMessage.responseCodes.UNDEFINED) {
     super(body)
+    if (!request) throw new Error('Request is not provided')
+    if (!request.ID) throw new Error('Request has no ID')
     this.role = Message.roles.RESPONSE
     this.requestHeader = request.header || {}
-    this.requestHeader.ID = request.ID // ID of the request to match request and response
+    this.requestID = request.ID // ID of the request to match request and response
     this.responseCode = responseCode
   }
 
@@ -22,11 +25,11 @@ export default class ResponseMessage extends Message {
    * A builder for a response message with a SUCCESS response code.
    *
    * @param {RequestMessage} request - An original request.
-   * @param {object} body - A body of response message.
+   * @param {object} [body={}] - A body of response message.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
-  static Success (request, body) {
+  static Success (request, body = {}) {
     return new this(request, body, ResponseMessage.responseCodes.SUCCESS)
   }
 
@@ -36,7 +39,7 @@ export default class ResponseMessage extends Message {
    * @param {RequestMessage} request - An original request.
    * @param {Error} error - An error object containing error information.
    * @returns {ResponseMessage} - A newly created response message with the SUCCESS return code.
-   * @constructor
+   * @class
    */
   static Error (request, error) {
     return new this(request, error, ResponseMessage.responseCodes.ERROR)
@@ -52,7 +55,7 @@ export default class ResponseMessage extends Message {
     return message.role &&
       message.role === Message.roles.RESPONSE &&
       message.requestHeader &&
-      message.requestHeader.ID
+      message.requestID
   }
 }
 
