@@ -45,19 +45,29 @@ describe('IndexedDbStore class', () => {
     value: 'TEST VALUE TWO'
   }
 
-  /*
-  A helper method to run operations on an IndexedDB mock.
+  /**
+   * A helper callback that associates store with a database and creates it.
+   *
+   * @param {IndexedDbStore} store - A store to be tested.
+   * @param {IDBDatabase} db - An interface of IndexedDB.
+   * @returns {Promise<undefined|Error>} Returns a promise that is resolved if operation succeeded and
+   *          is rejected if operation failed.
    */
-  const execute = (onOpen, onUpgrade) => {
+  const onUpgradeHelper = async (store, db) => {
+    return store.associateWith(db).create()
+  }
+
+  /*
+  A helper functions to run operations on an IndexedDB mock.
+   */
+  const execute = (store, onOpen, onUpgrade = onUpgradeHelper) => {
     return new Promise((resolve, reject) => {
       // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
       const openRequest = indexedDB.open(indexedDbConfig.name, indexedDbConfig.version) // eslint-disable-line prefer-const
       openRequest.onupgradeneeded = async () => {
         const db = openRequest.result
         try {
-          if (onUpgrade) {
-            await onUpgrade(db)
-          }
+          await onUpgrade(store, db)
         } catch (error) {
           // Tear down the database
           db.close()
@@ -121,16 +131,15 @@ describe('IndexedDbStore class', () => {
 
   it('create: creates a store', async () => {
     const indexedDbStore = new IndexedDbStore(storeConfiguration)
-    const onOpen = async (db) => db.objectStoreNames
-    const onUpgrade = (db) => indexedDbStore.associateWith(db).create()
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([storeConfiguration.name])
+    const onOpen = (db) => db.objectStoreNames
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject([storeConfiguration.name])
   })
 
   it('create: fails if not associated with a DB first', async () => {
     const indexedDbStore = new IndexedDbStore(storeConfiguration)
-    const onOpen = async (db) => db.objectStoreNames
+    const onOpen = (db) => db.objectStoreNames
     const onUpgrade = () => indexedDbStore.create()
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_DB)
+    await expect(execute(indexedDbStore, onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_DB)
   })
 
   it('clear: deletes all records from a store', async () => {
@@ -142,10 +151,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [testRecordOne],
       after: []
     })
@@ -157,10 +163,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.get(testRecordOne.index)
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([testRecordOne])
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject([testRecordOne])
   })
 
   it('get: retrieves a record by a secondary index', async () => {
@@ -172,10 +175,7 @@ describe('IndexedDbStore class', () => {
         { index: storeConfiguration.indexes.secondary.name }
       )
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([testRecordOne])
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject([testRecordOne])
   })
 
   it('get: returns an empty array if a primary index key is not found', async () => {
@@ -184,10 +184,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.get(0)
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([])
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject([])
   })
 
   it('get: returns an empty array if a secondary index key is not found', async () => {
@@ -199,10 +196,7 @@ describe('IndexedDbStore class', () => {
         { index: storeConfiguration.indexes.secondary.name }
       )
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([])
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject([])
   })
 
   it('get: rejects if no key is provided', async () => {
@@ -211,10 +205,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.get()
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('get: rejects if a secondary index name is incorrect', async () => {
@@ -223,10 +214,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.get(testRecordOne[storeConfiguration.indexes.secondary.keyPath], { index: 'incorrect' })
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
   })
 
   it('getEntries: retrieves a single record by a primary index', async () => {
@@ -235,10 +223,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries(testRecordOne.index)
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({ [testRecordOne.index]: [testRecordOne] })
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({ [testRecordOne.index]: [testRecordOne] })
   })
 
   it('getEntries: retrieves several records by a primary index', async () => {
@@ -247,10 +232,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert([testRecordOne, testRecordTwo])
       return indexedDbStore.getEntries([testRecordOne.index, testRecordTwo.index])
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       [testRecordOne.index]: [testRecordOne],
       [testRecordTwo.index]: [testRecordTwo]
     })
@@ -266,10 +248,7 @@ describe('IndexedDbStore class', () => {
         { index: storeConfiguration.indexes.secondary.name }
       )
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves
+    await expect(execute(indexedDbStore, onOpen)).resolves
       .toMatchObject({ [testRecordOne[keyPath]]: [testRecordOne] })
   })
 
@@ -283,10 +262,7 @@ describe('IndexedDbStore class', () => {
         { index: storeConfiguration.indexes.secondary.name }
       )
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       [testRecordOne[keyPath]]: [testRecordOne],
       [testRecordTwo[keyPath]]: [testRecordTwo]
     })
@@ -299,10 +275,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries(missingKey)
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({ [missingKey]: [] })
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({ [missingKey]: [] })
   })
 
   it('getEntries: returns an empty object if several primary index keys are not found', async () => {
@@ -312,10 +285,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries(missingKeys)
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       [missingKeys[0]]: [],
       [missingKeys[1]]: []
     })
@@ -331,10 +301,7 @@ describe('IndexedDbStore class', () => {
         { index: storeConfiguration.indexes.secondary.name }
       )
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({ [missingKey]: [] })
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({ [missingKey]: [] })
   })
 
   it('getEntries: returns an empty object if several secondary index keys are not found', async () => {
@@ -347,10 +314,7 @@ describe('IndexedDbStore class', () => {
         { index: storeConfiguration.indexes.secondary.name }
       )
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves
+    await expect(execute(indexedDbStore, onOpen)).resolves
       .toMatchObject({ [missingKeys[0]]: [], [missingKeys[1]]: [] })
   })
 
@@ -360,10 +324,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries()
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if an array of keys is empty', async () => {
@@ -372,10 +333,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries([])
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if a secondary key is not provided', async () => {
@@ -385,10 +343,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries(incorrectKey, { index: storeConfiguration.indexes.secondary.name })
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if an array of secondary keys is empty', async () => {
@@ -397,10 +352,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries([], { index: storeConfiguration.indexes.secondary.name })
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.NO_KEYS_PROVIDED)
   })
 
   it('getEntries: rejects if secondary index name is incorrect', async () => {
@@ -409,10 +361,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert(testRecordOne)
       return indexedDbStore.getEntries(testRecordOne[storeConfiguration.indexes.secondary.keyPath], { index: 'incorrect' })
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.MISSING_SECONDARY_INDEX)
   })
 
   it('getAllEntries: returns all records', async () => {
@@ -421,10 +370,7 @@ describe('IndexedDbStore class', () => {
       await indexedDbStore.insert([testRecordOne, testRecordTwo])
       return indexedDbStore.getAllEntries()
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([testRecordOne, testRecordTwo])
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject([testRecordOne, testRecordTwo])
   })
 
   it('getAllEntries: returns an empty array if there are no records', async () => {
@@ -432,10 +378,7 @@ describe('IndexedDbStore class', () => {
     const onOpen = async () => {
       return indexedDbStore.getAllEntries()
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject([])
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject([])
   })
 
   it('insert: adds one record to a database', async () => {
@@ -446,10 +389,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [],
       after: [testRecordOne]
     })
@@ -463,10 +403,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [],
       after: [testRecordOne, testRecordTwo]
     })
@@ -480,10 +417,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [],
       after: []
     })
@@ -498,10 +432,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).rejects.toThrowError(IndexedDbStore.errMsgs.DUPLICATE_RECORD)
+    await expect(execute(indexedDbStore, onOpen)).rejects.toThrowError(IndexedDbStore.errMsgs.DUPLICATE_RECORD)
   })
 
   it('update: updates one record in a database', async () => {
@@ -513,10 +444,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [testRecordOne],
       after: [testRecordOneUpdated]
     })
@@ -534,10 +462,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [testRecordOne, testRecordTwo],
       after: [testRecordOneUpdated, testRecordTwoUpdated]
     })
@@ -551,10 +476,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [],
       after: []
     })
@@ -568,10 +490,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [],
       after: [testRecordOne]
     })
@@ -585,10 +504,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.getAllEntries()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: [],
       after: [testRecordOne, testRecordTwo]
     })
@@ -602,10 +518,7 @@ describe('IndexedDbStore class', () => {
       const after = await indexedDbStore.count()
       return { before, after }
     }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toMatchObject({
+    await expect(execute(indexedDbStore, onOpen)).resolves.toMatchObject({
       before: 0,
       after: 2
     })
@@ -613,12 +526,7 @@ describe('IndexedDbStore class', () => {
 
   it('count: return zero if database is empty', async () => {
     const indexedDbStore = new IndexedDbStore(storeConfiguration)
-    const onOpen = async () => {
-      return indexedDbStore.count()
-    }
-    const onUpgrade = async (db) => {
-      return indexedDbStore.associateWith(db).create()
-    }
-    await expect(execute(onOpen, onUpgrade)).resolves.toBe(0)
+    const onOpen = () => indexedDbStore.count()
+    await expect(execute(indexedDbStore, onOpen)).resolves.toBe(0)
   })
 })

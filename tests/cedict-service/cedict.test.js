@@ -2,13 +2,13 @@
 import Cedict from '@lexisCs/cedict-service/cedict'
 import CedictPermanentStorage from '@lexisCs/cedict-service/cedict-permanent-storage.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
-import CedictC1 from '@lexisCsCedict/cedict-v20191029-c001.json'
-import CedictC2 from '@lexisCsCedict/cedict-v20191029-c002.json'
-import CedictC3 from '@lexisCsCedict/cedict-v20191029-c003.json'
-import CedictC4 from '@lexisCsCedict/cedict-v20191029-c004.json'
+import CedictC1 from '@lexisCsCedict/cedict-c001.json'
+import CedictC2 from '@lexisCsCedict/cedict-c002.json'
+import CedictC3 from '@lexisCsCedict/cedict-c003.json'
+import CedictC4 from '@lexisCsCedict/cedict-c004.json'
 require('fake-indexeddb/auto')
 
-describe('CedictPermanentStorage class', () => {
+describe('Cedict class', () => {
   /**
    * Replaces an original loader with a stub that will load local test data.
    *
@@ -17,19 +17,14 @@ describe('CedictPermanentStorage class', () => {
    *          an object containing dictionary data.
    */
   Cedict.prototype._loadJson = (url) => {
-    const resources = {
-      'http://data-dev.alpheios.net/cedict/cedict-v20191029-c001.json': CedictC1,
-      'http://data-dev.alpheios.net/cedict/cedict-v20191029-c002.json': CedictC2,
-      'http://data-dev.alpheios.net/cedict/cedict-v20191029-c003.json': CedictC3,
-      'http://data-dev.alpheios.net/cedict/cedict-v20191029-c004.json': CedictC4
-    }
-    return Promise.resolve(resources[url])
+    // A number of a chunk requested, from 1 to 4
+    const chunkNum = Number.parseInt(url.match(/c\d{2}(\d).json$/)[1], 10)
+    return Promise.resolve([CedictC1, CedictC2, CedictC3, CedictC4][chunkNum - 1])
   }
 
   let dictionary = new Map() // eslint-disable-line prefer-const
   ;[CedictC1.entries, CedictC2.entries, CedictC3.entries, CedictC4.entries].flat()
     .forEach(entry => dictionary.set(entry.index, entry))
-  const dictionaryEntriesTotal = 33
 
   let storedMeta = CedictC1.metadata // eslint-disable-line prefer-const
   delete storedMeta.chunkNumber
@@ -39,10 +34,10 @@ describe('CedictPermanentStorage class', () => {
     recordsInMeta: 1,
 
     // A total number of dictionary records in all test data chunks
-    recordsInDictionary: dictionaryEntriesTotal
+    recordsInDictionary: dictionary.size
   }
 
-  CedictConfig.data.recordsCount = dictionaryEntriesTotal
+  CedictConfig.data.recordsCount = dictionary.size
 
   it('constructor: must create an instance', () => {
     expect(new Cedict(CedictConfig)).toBeInstanceOf(Cedict)
@@ -96,6 +91,7 @@ describe('CedictPermanentStorage class', () => {
     expect(() => new Cedict(configuration)).toThrowError(Cedict.errMsgs.CONF_NO_DICT_VOLATILE_INDEXED)
   })
 
+  // TODO: Move checks related to permanentStorage into CedictPermanentStorage
   it('constructor: dictionary must have a permanentStorage tree', () => {
     let configuration = JSON.parse(JSON.stringify(CedictConfig)) // eslint-disable-line prefer-const
     delete configuration.storage.stores.dictionary.permanentStorage
