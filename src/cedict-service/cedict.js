@@ -350,16 +350,17 @@ export default class Cedict {
   /**
    * Creates indexes for an in-memory storage.
    */
+
   _indexVolatileStorage () {
     this.cedict.traditionalHeadwordsIdx = new Map()
     this.cedict.simplifiedHeadwordsIdx = new Map()
     this.cedict.dictionary.forEach(entry => {
-      this.cedict.traditionalHeadwordsIdx.has(entry.traditionalHeadword)
-        ? this.cedict.traditionalHeadwordsIdx.get(entry.traditionalHeadword).push(entry.index)
-        : this.cedict.traditionalHeadwordsIdx.set(entry.traditionalHeadword, [entry.index])
-      this.cedict.simplifiedHeadwordsIdx.has(entry.simplifiedHeadword)
-        ? this.cedict.simplifiedHeadwordsIdx.get(entry.simplifiedHeadword).push(entry.index)
-        : this.cedict.simplifiedHeadwordsIdx.set(entry.simplifiedHeadword, [entry.index])
+      this.cedict.traditionalHeadwordsIdx.has(entry.traditional.headword)
+        ? this.cedict.traditionalHeadwordsIdx.get(entry.traditional.headword).push(entry.index)
+        : this.cedict.traditionalHeadwordsIdx.set(entry.traditional.headword, [entry.index])
+      this.cedict.simplifiedHeadwordsIdx.has(entry.simplified.headword)
+        ? this.cedict.simplifiedHeadwordsIdx.get(entry.simplified.headword).push(entry.index)
+        : this.cedict.simplifiedHeadwordsIdx.set(entry.simplified.headword, [entry.index])
     })
   }
 

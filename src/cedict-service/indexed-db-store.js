@@ -72,6 +72,7 @@ export default class IndexedDbStore extends Store {
 
   /**
    * Checks if store has an auto-incremented primary key
+   *
    * @returns {boolean} True if primary key is auto-incremented.
    * @private
    */
