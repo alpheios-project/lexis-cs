@@ -784,6 +784,7 @@ class Cedict {
   /**
    * Creates indexes for an in-memory storage.
    */
+
   _indexVolatileStorage () {
     this.cedict.traditionalHeadwordsIdx = new Map()
     this.cedict.simplifiedHeadwordsIdx = new Map()
@@ -952,6 +953,7 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
 
   /**
    * Checks if store has an auto-incremented primary key
+   *
    * @returns {boolean} True if primary key is auto-incremented.
    * @private
    */
@@ -1218,6 +1220,8 @@ __webpack_require__.r(__webpack_exports__);
 
 const CedictCharacterForms = _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3__["default"].characterForms
 
+const messagingServiceName = 'CedictRequestListener'
+
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
  *
@@ -1282,7 +1286,7 @@ const messageHandler = (request, responseFn) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](CedictDestinationConfig))
+  const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](messagingServiceName, new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](CedictDestinationConfig))
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
   try {
@@ -2148,9 +2152,26 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+/**
+ * A map to keep "single" instances of MessagingService objects.
+ *
+ * @type {Map<string, MessagingService>}
+ */
+let services = new Map() // eslint-disable-line prefer-const
+
 /** A messaging for sending and receiving messages to and from various destinations */
 class MessagingService {
-  constructor (destinations = []) {
+  /**
+   * Creates an instance of a messaging service.
+   *
+   * @param {string} name - A name of a messaging service. Useful in identifying the service when
+   *        several clients need to share the same instance of a service.
+   * @param {Destination || Destination[]} destinations - One or several
+   *        destination objects to be used with the messaging service.
+   */
+  constructor (name, destinations = []) {
+    if (!name) throw new Error(MessagingService.errMsgs.NO_NAME)
+    this.name = name
     /**
      * A map object where outgoing messages will be stored. The key is the message ID and the value is an object
      * that stores details about the message being sent.
@@ -2170,6 +2191,52 @@ class MessagingService {
     // If provided as a singular value convert destination into an array
     if (!Array.isArray(destinations)) { destinations = [destinations] }
     destinations.forEach(destination => this.registerDestination(destination))
+  }
+
+  /**
+   * Check if service with a given name has already been created.
+   *
+   * @param {string} name - A name of a service.
+   * @returns {boolean} Returns true if service has already been created or false otherwise.
+   */
+  static hasService (name) {
+    return services.has(name)
+  }
+
+  /**
+   * Returns an instance of a service or `undefined` if service does not exist.
+   *
+   * @param {string} name - A name of a service.
+   * @returns {MessagingService|undefined} If service exists, returns an instance of a service.
+   *          If it does not, returns `undefined`.
+   */
+  static getService (name) {
+    return services.get(name)
+  }
+
+  /**
+   * Creates an instance of a MessagingService and adds it to the map of instances.
+   *
+   * @param {string} name - A map of messaging service to create.
+   * @param {Destination|Destination[]} destinations - One or several
+   *        destination objects to be used with the messaging service.
+   * @returns {MessagingService} An instance of a newly created messaging service.
+   */
+  static createService (name, destinations = []) {
+    const service = new MessagingService(name, destinations)
+    services.set(name, service)
+    return service
+  }
+
+  /**
+   * Removes an instance of a MessagingService form the map of instances.
+   *
+   * @param {string} name - A name of a service to remove.
+   * @returns {boolean} True if a service in the map existed and has been removed,
+   *          or false if the service does not exist.
+   */
+  static deleteService (name) {
+    return services.delete(name)
   }
 
   /**
@@ -2208,6 +2275,7 @@ class MessagingService {
       console.error('A message not following a response format will be ignored:', message)
       return
     }
+    console.info(`A message arrived with id of ${message.requestID}`)
 
     if (!this._messages.has(message.requestID)) {
       console.error(`Ignoring a message with request ID ${message.requestID} not registered in a request list`, message)
@@ -2240,6 +2308,7 @@ class MessagingService {
     let storedRequest = new _stored_request__WEBPACK_IMPORTED_MODULE_1__["default"](request) // eslint-disable-line prefer-const
     this._messages.set(request.ID, storedRequest)
     storedRequest.timeoutID = window.setTimeout((requestID) => {
+      console.info(`Timeout has been fired for ${requestID}`)
       storedRequest.reject(new Error(`Timeout has been expired for a message with request ID ${request.ID}`))
       this._messages.delete(requestID) // Remove request record from the map
     }, timeout)
@@ -2256,6 +2325,7 @@ class MessagingService {
    *          with response message or rejected with the error info.
    */
   sendRequestTo (destName, request, timeout = 10000) {
+    console.info(`Send request to, ${request.ID}`)
     if (!destName) {
       throw new Error('Destination name is not provided')
     }
@@ -2287,6 +2357,10 @@ class MessagingService {
 
     this._destinations.get(destName).registerReceiverCallback(callbackFn)
   }
+}
+
+MessagingService.errMsgs = {
+  NO_NAME: 'MessagingService must be created with a name'
 }
 
 

@@ -5,6 +5,8 @@ import Cedict from '@lexisCs/cedict-service/cedict.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
 const CedictCharacterForms = Cedict.characterForms
 
+const messagingServiceName = 'CedictRequestListener'
+
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
  *
@@ -69,7 +71,7 @@ const messageHandler = (request, responseFn) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const service = new MessagingService(new Destination(CedictDestinationConfig))
+  const service = new MessagingService(messagingServiceName, new Destination(CedictDestinationConfig))
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
   try {
