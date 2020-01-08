@@ -12,10 +12,10 @@ const webpack = {
   },
 
   production: {
-    output: { filename: 'lexis-cs.min.js' }
+    output: { filename: 'lexis-cs-test-bundle.min.js' }
   },
   development: {
-    output: { filename: 'lexis-cs.js' }
+    output: { filename: 'lexis-cs-test-bundle.js' }
   }
 }
 

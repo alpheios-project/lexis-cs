@@ -91,10 +91,43 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./src/cedict-service/service.js");
+/******/ 	return __webpack_require__(__webpack_require__.s = "./index.js");
 /******/ })
 /************************************************************************/
 /******/ ({
+
+/***/ "./index.js":
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+/*! exports provided: MessagingService, WindowIframeDestination, RequestMessage, CedictDestinationConfig, CedictCharacterForms */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "MessagingService", function() { return _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"]; });
+
+/* harmony import */ var _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-iframe-destination.js */ "./src/messaging/destinations/window-iframe-destination.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "WindowIframeDestination", function() { return _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_1__["default"]; });
+
+/* harmony import */ var _lexisCs_messaging_messages_request_message_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/messages/request-message.js */ "./src/messaging/messages/request-message.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "RequestMessage", function() { return _lexisCs_messaging_messages_request_message_js__WEBPACK_IMPORTED_MODULE_2__["default"]; });
+
+/* harmony import */ var _lexisCs_cedict_service_service_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @lexisCs/cedict-service/service.js */ "./src/cedict-service/service.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "CedictDestinationConfig", function() { return _lexisCs_cedict_service_service_js__WEBPACK_IMPORTED_MODULE_3__["CedictDestinationConfig"]; });
+
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "CedictCharacterForms", function() { return _lexisCs_cedict_service_service_js__WEBPACK_IMPORTED_MODULE_3__["CedictCharacterForms"]; });
+
+
+
+
+
+
+
+
+
+/***/ }),
 
 /***/ "./node_modules/uuid/lib/bytesToUuid.js":
 /*!**********************************************!*\
@@ -493,11 +526,15 @@ class Cedict {
     preferred character form specified below first. If any results for that character form will be found,
     only those ones will be returned to the client. If no results for the preferred character form
     are in the dictionary then we will search for records with other character forms.
+    ATTENTION! This constant is used in a stub `client-adapters/src/adapters/chineseloc/adapter.js`.
+    if you will change it please update it in a stab as well.
      */
     this.preferredCharacterForm = Cedict.characterForms.TRADITIONAL
 
     /*
     This is a character form we will fallback into if matches for the preferred one are not found.
+    ATTENTION! This constant is used in a stub `client-adapters/src/adapters/chineseloc/adapter.js`.
+    if you will change it please update it in a stab as well.
      */
     this.fallbackCharacterForm = Cedict.characterForms.SIMPLIFIED
   }
@@ -627,6 +664,8 @@ class Cedict {
 
   /**
    * Returns one or several records from CEDICT dictionary for one or several Chinese words.
+   * ATTENTION! There is a stub that implements this method in `client-adapters/src/adapters/chineseloc/adapter.js`.
+   * If business logic here will be updated please update the stub as well.
    *
    * @param {string|[string]} words - A single Chinese word or an array of Chinese words.
    * @param {string|undefined} [characterForm=undefined] - A string constant that specifies
@@ -2415,4 +2454,4 @@ class StoredRequest {
 
 /******/ });
 });
-//# sourceMappingURL=service.js.map
+//# sourceMappingURL=lexis-cs-test-bundle.js.map

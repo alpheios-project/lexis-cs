@@ -59,11 +59,15 @@ export default class Cedict {
     preferred character form specified below first. If any results for that character form will be found,
     only those ones will be returned to the client. If no results for the preferred character form
     are in the dictionary then we will search for records with other character forms.
+    ATTENTION! This constant is used in a stub `client-adapters/src/adapters/chineseloc/adapter.js`.
+    if you will change it please update it in a stab as well.
      */
     this.preferredCharacterForm = Cedict.characterForms.TRADITIONAL
 
     /*
     This is a character form we will fallback into if matches for the preferred one are not found.
+    ATTENTION! This constant is used in a stub `client-adapters/src/adapters/chineseloc/adapter.js`.
+    if you will change it please update it in a stab as well.
      */
     this.fallbackCharacterForm = Cedict.characterForms.SIMPLIFIED
   }
@@ -193,6 +197,8 @@ export default class Cedict {
 
   /**
    * Returns one or several records from CEDICT dictionary for one or several Chinese words.
+   * ATTENTION! There is a stub that implements this method in `client-adapters/src/adapters/chineseloc/adapter.js`.
+   * If business logic here will be updated please update the stub as well.
    *
    * @param {string|[string]} words - A single Chinese word or an array of Chinese words.
    * @param {string|undefined} [characterForm=undefined] - A string constant that specifies

@@ -2,35 +2,28 @@
 import Cedict from '@lexisCs/cedict-service/cedict'
 import CedictPermanentStorage from '@lexisCs/cedict-service/cedict-permanent-storage.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
-import CedictC1 from '@lexisCsCedict/cedict-c001.json'
-import CedictC2 from '@lexisCsCedict/cedict-c002.json'
-import CedictC3 from '@lexisCsCedict/cedict-c003.json'
-import CedictC4 from '@lexisCsCedict/cedict-c004.json'
+import { Fixture } from 'alpheios-fixtures'
 require('fake-indexeddb/auto')
 
 describe('Cedict class', () => {
+  // Load samples of CEDICT test data
+  const cedictData = Fixture.getFixtureRes({ langCode: 'zho', adapter: 'cedict' })
+
   /**
    * Replaces an original loader with a stub that will load local test data.
    *
-   * @param {string} url - A URL of a chunk to be fetched.
    * @returns {Promise<object>} Returns a promise that is resolved with
    *          an object containing dictionary data.
    */
-  Cedict.prototype._loadJson = (url) => {
-    // A number of a chunk requested, from 1 to 4
-    const chunkNum = Number.parseInt(url.match(/c\d{2}(\d).json$/)[1], 10)
-    return Promise.resolve([CedictC1, CedictC2, CedictC3, CedictC4][chunkNum - 1])
+  Cedict.prototype._downloadData = () => {
+    return Promise.resolve({ meta: cedictData.metadata, dictionary: cedictData.entries })
   }
 
   let dictionary = new Map() // eslint-disable-line prefer-const
-  ;[CedictC1.entries, CedictC2.entries, CedictC3.entries, CedictC4.entries].flat()
-    .forEach(entry => dictionary.set(entry.index, entry))
-
-  let storedMeta = CedictC1.metadata // eslint-disable-line prefer-const
-  delete storedMeta.chunkNumber
+  cedictData.entries.forEach(entry => dictionary.set(entry.index, entry))
 
   const integrityData = {
-    metadata: storedMeta,
+    metadata: cedictData.metadata,
     recordsInMeta: 1,
 
     // A total number of dictionary records in all test data chunks
@@ -243,6 +236,29 @@ describe('Cedict class', () => {
       simplified: {
         [testWords[0]]: [dictionary.get(108835)],
         [testWords[1]]: [dictionary.get(35909)]
+      }
+    })
+    await cedict.removePermanentData()
+  })
+
+  /*
+  To imitate "context forward" requests
+   */
+  it('getWords: returns data for multiple traditional Chinese words when some words are missing from a dictionary', async () => {
+    const testWords = ['1', '2', '21', '21三', '21三體', '21三體綜', '21三體綜合', '21三體綜合症']
+    const cedict = new Cedict(CedictConfig)
+    await cedict.init()
+    await cedict.getWords(testWords)
+    await expect(cedict.getWords(testWords)).resolves.toEqual({
+      traditional: {
+        [testWords[0]]: [],
+        [testWords[1]]: [],
+        [testWords[2]]: [],
+        [testWords[3]]: [],
+        [testWords[4]]: [],
+        [testWords[5]]: [],
+        [testWords[6]]: [],
+        [testWords[7]]: [dictionary.get(2)]
       }
     })
     await cedict.removePermanentData()
