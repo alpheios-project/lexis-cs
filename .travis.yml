@@ -13,4 +13,4 @@ deploy:
   acl: public_read_write
   on:
     repo: alpheios-project/lexis-cs
-    branch: lexis-travis
+    branch: cedict
