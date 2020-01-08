@@ -69,7 +69,7 @@
   "devDependencies": {
     "@babel/core": "^7.7.7",
     "@babel/runtime": "^7.7.7",
-    "alpheios-fixtures": "file:../fixtures",
+    "alpheios-fixtures": "github:alpheios-project/fixtures#cedict",
     "alpheios-node-build": "github:alpheios-project/node-build",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
