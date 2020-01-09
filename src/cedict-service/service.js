@@ -51,6 +51,9 @@ If any matches are found:
 
 If no matches are found an empty object will be returned:
 {}
+
+NOTE: fixtures/src/cedict/cedict-fixture.js implements a stub for `getWords` request of CEDICT service.
+      If signature and/or business logic of this request is changed, please update the stub accordingly.
  */
 
 const messageHandler = (request, responseFn) => {
