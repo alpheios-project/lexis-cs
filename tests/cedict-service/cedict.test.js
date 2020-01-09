@@ -2,35 +2,24 @@
 import Cedict from '@lexisCs/cedict-service/cedict'
 import CedictPermanentStorage from '@lexisCs/cedict-service/cedict-permanent-storage.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
-import { Fixture } from 'alpheios-fixtures'
+import { CedictFixture } from 'alpheios-fixtures'
 require('fake-indexeddb/auto')
 
 describe('Cedict class', () => {
-  // Load samples of CEDICT test data
-  const cedictData = Fixture.getFixtureRes({ langCode: 'zho', adapter: 'cedict' })
-
-  /**
-   * Replaces an original loader with a stub that will load local test data.
-   *
-   * @returns {Promise<object>} Returns a promise that is resolved with
-   *          an object containing dictionary data.
-   */
-  Cedict.prototype._downloadData = () => {
-    return Promise.resolve({ meta: cedictData.metadata, dictionary: cedictData.entries })
-  }
-
+  Cedict.prototype._downloadData = CedictFixture.downloadData
   let dictionary = new Map() // eslint-disable-line prefer-const
-  cedictData.entries.forEach(entry => dictionary.set(entry.index, entry))
-
   const integrityData = {
-    metadata: cedictData.metadata,
-    recordsInMeta: 1,
-
-    // A total number of dictionary records in all test data chunks
-    recordsInDictionary: dictionary.size
+    recordsInMeta: 1
   }
 
-  CedictConfig.data.recordsCount = dictionary.size
+  beforeAll(async () => {
+    const { meta: metadata, dictionary: entries } = await CedictFixture.downloadData()
+    entries.forEach(entry => dictionary.set(entry.index, entry))
+    integrityData.metadata = metadata
+    // A total number of dictionary records in a CEDICt test sample
+    integrityData.recordsInDictionary = dictionary.size
+    CedictConfig.data.recordsCount = dictionary.size
+  })
 
   it('constructor: must create an instance', () => {
     expect(new Cedict(CedictConfig)).toBeInstanceOf(Cedict)
