@@ -493,15 +493,15 @@ class Cedict {
     preferred character form specified below first. If any results for that character form will be found,
     only those ones will be returned to the client. If no results for the preferred character form
     are in the dictionary then we will search for records with other character forms.
-    ATTENTION! This constant is used in a stub `client-adapters/src/adapters/chineseloc/adapter.js`.
-    if you will change it please update it in a stab as well.
+    NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
+    If you will change this constant please update it in the stab as well.
      */
     this.preferredCharacterForm = Cedict.characterForms.TRADITIONAL
 
     /*
     This is a character form we will fallback into if matches for the preferred one are not found.
-    ATTENTION! This constant is used in a stub `client-adapters/src/adapters/chineseloc/adapter.js`.
-    if you will change it please update it in a stab as well.
+    NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
+    If you will change this constant please update it in the stab as well.
      */
     this.fallbackCharacterForm = Cedict.characterForms.SIMPLIFIED
   }
@@ -631,8 +631,9 @@ class Cedict {
 
   /**
    * Returns one or several records from CEDICT dictionary for one or several Chinese words.
-   * ATTENTION! There is a stub that implements this method in `client-adapters/src/adapters/chineseloc/adapter.js`.
-   * If business logic here will be updated please update the stub as well.
+   * NOTE: The business logic from this method is used inside a `lexisCedictRequest()` stub
+   * in `fixtures/src/cedict/cedict-fixture.js`. If the business logic will be updated
+   * please update the stub to match the change.
    *
    * @param {string|[string]} words - A single Chinese word or an array of Chinese words.
    * @param {string|undefined} [characterForm=undefined] - A string constant that specifies
@@ -754,6 +755,8 @@ class Cedict {
 
   /**
    * Loads fresh CEDICT data from a remote server.
+   * NOTE: fixtures/src/cedict/cedict-fixture.js implements a stub for this method. If signature and/or business
+   * logic of this method is changed, please update the stub accordingly.
    *
    * @returns {Promise<{meta: object, dictionary: object[]}> | Promise<Error>} - Returns a promise that will be resolved with undefined
    *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
@@ -1272,6 +1275,9 @@ If any matches are found:
 
 If no matches are found an empty object will be returned:
 {}
+
+NOTE: fixtures/src/cedict/cedict-fixture.js implements a stub for `getWords` request of CEDICT service.
+      If signature and/or business logic of this request is changed, please update the stub accordingly.
  */
 
 const messageHandler = (request, responseFn) => {
