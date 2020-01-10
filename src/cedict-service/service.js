@@ -5,6 +5,8 @@ import Cedict from '@lexisCs/cedict-service/cedict.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
 const CedictCharacterForms = Cedict.characterForms
 
+const messagingServiceName = 'CedictRequestListener'
+
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
  *
@@ -49,6 +51,9 @@ If any matches are found:
 
 If no matches are found an empty object will be returned:
 {}
+
+NOTE: fixtures/src/cedict/cedict-fixture.js implements a stub for `getWords` request of CEDICT service.
+      If signature and/or business logic of this request is changed, please update the stub accordingly.
  */
 
 const messageHandler = (request, responseFn) => {
@@ -69,7 +74,7 @@ const messageHandler = (request, responseFn) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const service = new MessagingService(new Destination(CedictDestinationConfig))
+  const service = new MessagingService(messagingServiceName, new Destination(CedictDestinationConfig))
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
   try {

@@ -59,11 +59,15 @@ export default class Cedict {
     preferred character form specified below first. If any results for that character form will be found,
     only those ones will be returned to the client. If no results for the preferred character form
     are in the dictionary then we will search for records with other character forms.
+    NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
+    If you will change this constant please update it in the stab as well.
      */
     this.preferredCharacterForm = Cedict.characterForms.TRADITIONAL
 
     /*
     This is a character form we will fallback into if matches for the preferred one are not found.
+    NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
+    If you will change this constant please update it in the stab as well.
      */
     this.fallbackCharacterForm = Cedict.characterForms.SIMPLIFIED
   }
@@ -193,6 +197,9 @@ export default class Cedict {
 
   /**
    * Returns one or several records from CEDICT dictionary for one or several Chinese words.
+   * NOTE: The business logic from this method is used inside a `lexisCedictRequest()` stub
+   * in `fixtures/src/cedict/cedict-fixture.js`. If the business logic will be updated
+   * please update the stub to match the change.
    *
    * @param {string|[string]} words - A single Chinese word or an array of Chinese words.
    * @param {string|undefined} [characterForm=undefined] - A string constant that specifies
@@ -314,6 +321,8 @@ export default class Cedict {
 
   /**
    * Loads fresh CEDICT data from a remote server.
+   * NOTE: fixtures/src/cedict/cedict-fixture.js implements a stub for this method. If signature and/or business
+   * logic of this method is changed, please update the stub accordingly.
    *
    * @returns {Promise<{meta: object, dictionary: object[]}> | Promise<Error>} - Returns a promise that will be resolved with undefined
    *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
@@ -350,16 +359,17 @@ export default class Cedict {
   /**
    * Creates indexes for an in-memory storage.
    */
+
   _indexVolatileStorage () {
     this.cedict.traditionalHeadwordsIdx = new Map()
     this.cedict.simplifiedHeadwordsIdx = new Map()
     this.cedict.dictionary.forEach(entry => {
-      this.cedict.traditionalHeadwordsIdx.has(entry.traditionalHeadword)
-        ? this.cedict.traditionalHeadwordsIdx.get(entry.traditionalHeadword).push(entry.index)
-        : this.cedict.traditionalHeadwordsIdx.set(entry.traditionalHeadword, [entry.index])
-      this.cedict.simplifiedHeadwordsIdx.has(entry.simplifiedHeadword)
-        ? this.cedict.simplifiedHeadwordsIdx.get(entry.simplifiedHeadword).push(entry.index)
-        : this.cedict.simplifiedHeadwordsIdx.set(entry.simplifiedHeadword, [entry.index])
+      this.cedict.traditionalHeadwordsIdx.has(entry.traditional.headword)
+        ? this.cedict.traditionalHeadwordsIdx.get(entry.traditional.headword).push(entry.index)
+        : this.cedict.traditionalHeadwordsIdx.set(entry.traditional.headword, [entry.index])
+      this.cedict.simplifiedHeadwordsIdx.has(entry.simplified.headword)
+        ? this.cedict.simplifiedHeadwordsIdx.get(entry.simplified.headword).push(entry.index)
+        : this.cedict.simplifiedHeadwordsIdx.set(entry.simplified.headword, [entry.index])
     })
   }
 

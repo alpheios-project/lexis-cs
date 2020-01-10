@@ -44,12 +44,12 @@ const cedict = {
         indexes: {
           traditional: {
             name: 'traditionalHwIdx',
-            keyPath: 'traditionalHeadword',
+            keyPath: 'traditional.headword',
             unique: false
           },
           simplified: {
             name: 'simplifiedHwIdx',
-            keyPath: 'simplifiedHeadword',
+            keyPath: 'simplified.headword',
             unique: false
           }
         },
@@ -129,7 +129,8 @@ const cedict = {
       'cedict-v20191029-c001.json',
       'cedict-v20191029-c002.json',
       'cedict-v20191029-c003.json',
-      'cedict-v20191029-c004.json'
+      'cedict-v20191029-c004.json',
+      'cedict-v20191029-c005.json'
     ]
   }
 }

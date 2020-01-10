@@ -1,13 +1,15 @@
 {
   "name": "lexis-cs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lexical services for client side scripts",
-  "main": "index.js",
+  "main": "dist/lexis-cs-test-bundle.js",
   "type": "module",
+  "module": "index.js",
   "scripts": {
     "test": "jest --coverage",
     "build-service-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config-service.mjs",
     "build-service-dev": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config-service.mjs",
+    "build-lexis-test-bundle": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config.mjs",
     "lint": "eslint --fix ./src/**/*.js",
     "lint-nofix": "eslint ./src/**/*.js"
   },
@@ -21,6 +23,10 @@
     "url": "https://github.com/alpheios-project/lexis-cs/issues"
   },
   "homepage": "https://github.com/alpheios-project/lexis-cs#readme",
+  "engines": {
+    "node": ">= 13.2.0",
+    "npm": ">= 6.9.0"
+  },
   "jest": {
     "verbose": true,
     "testPathIgnorePatterns": [
@@ -34,7 +40,7 @@
     ],
     "moduleNameMapper": {
       "^@lexisCs[/](.+)": "<rootDir>/src/$1",
-      "^@lexisCsCedict[/](.+)": "<rootDir>/tests/cedict-service/dictionary/$1"
+      "^@lexisCsCedict[/](.+)": "<rootDir>/node_modules/alpheios-cedict/test/data/$1"
     },
     "moduleFileExtensions": [
       "js"
@@ -65,25 +71,24 @@
     "**/support"
   ],
   "devDependencies": {
-    "@babel/core": "^7.7.5",
-    "@babel/runtime": "^7.7.6",
+    "@babel/core": "^7.7.7",
+    "@babel/runtime": "^7.7.7",
+    "alpheios-fixtures": "github:alpheios-project/fixtures",
     "alpheios-node-build": "github:alpheios-project/node-build",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
-    "eslint": "^6.7.2",
+    "eslint": "^6.8.0",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.19.1",
-    "eslint-plugin-jsdoc": "^18.4.3",
-    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-jsdoc": "^20.0.5",
+    "eslint-plugin-node": "^11.0.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
-    "eslint-plugin-vue": "^6.0.1",
+    "eslint-plugin-vue": "^6.1.2",
     "eslint-scope": "^5.0.0",
     "fake-indexeddb": "^3.0.0",
     "jest": "^24.9.0",
-    "terser": "4.3.4",
-    "terser-webpack-plugin": "2.1.2",
-    "webpack": "^4.41.2"
+    "webpack": "^4.41.5"
   },
   "dependencies": {}
 }
