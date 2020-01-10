@@ -1238,7 +1238,7 @@ const messagingServiceName = 'CedictRequestListener'
  */
 const CedictDestinationConfig = {
   name: 'cedict',
-  targetURL: 'http://data-dev.alpheios.net',
+  targetURL: 'https://lexisdev.s3.us-east-2.amazonaws.com/index.html', // Can also use http://data-dev.alpheios.net
   targetIframeID: 'alpheios-lexis-cs'
 }
 
@@ -2287,7 +2287,6 @@ class MessagingService {
       console.error('A message not following a response format will be ignored:', message)
       return
     }
-    console.info(`A message arrived with id of ${message.requestID}`)
 
     if (!this._messages.has(message.requestID)) {
       /*
@@ -2340,7 +2339,6 @@ class MessagingService {
    *          with response message or rejected with the error info.
    */
   sendRequestTo (destName, request, timeout = 10000) {
-    console.info(`Send request to, ${request.ID}`)
     if (!destName) {
       throw new Error('Destination name is not provided')
     }
