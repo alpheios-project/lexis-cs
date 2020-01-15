@@ -130,7 +130,7 @@ export default class Cedict {
         .catch(() => {
           // Data in permanent storage needs to be updated
           return this.removePermanentData()
-            // `connect()` will create storage and stores
+          // `connect()` will create storage and stores
             .then(() => this._storage.connect())
             .then(() => this._downloadData())
             .then(({ meta, dictionary }) => {
@@ -152,7 +152,7 @@ export default class Cedict {
                 })
             })
         })
-        .catch((error) => reject(error))
+        .catch((error) => { console.error(error); reject(error) })
         .then(() => {
           this.isReady = true
           resolve()
@@ -289,7 +289,7 @@ export default class Cedict {
         } else {
           // Indexes are not available, iterate over an array of values
           this.cedict.dictionary.forEach(entry => {
-            const hw = (characterForm === Cedict.characterForms.SIMPLIFIED) ? entry.simplifiedHeadword : entry.traditionalHeadword
+            const hw = (characterForm === Cedict.characterForms.SIMPLIFIED) ? entry.simplified.headword : entry.traditional.headword
             words.forEach(word => {
               if (hw === word) {
                 result[word].push(entry)

@@ -162,7 +162,6 @@ export default class MessagingService {
     let storedRequest = new StoredRequest(request) // eslint-disable-line prefer-const
     this._messages.set(request.ID, storedRequest)
     storedRequest.timeoutID = window.setTimeout((requestID) => {
-      console.info(`Timeout has been fired for ${requestID}`)
       storedRequest.reject(new Error(`Timeout has been expired for a message with request ID ${request.ID}`))
       this._messages.delete(requestID) // Remove request record from the map
     }, timeout)

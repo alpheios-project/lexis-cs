@@ -63,7 +63,8 @@
       "allowImportExportEverywhere": true
     },
     "rules": {
-      "no-prototype-builtins": "off"
+      "no-prototype-builtins": "off",
+      "dot-notation": "off"
     }
   },
   "eslintIgnore": [

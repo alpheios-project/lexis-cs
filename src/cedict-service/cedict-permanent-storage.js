@@ -104,12 +104,19 @@ export default class CedictPermanentStorage extends Storage {
    */
   connect () {
     return new Promise((resolve, reject) => {
-      // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
-      const openRequest = indexedDB.open(this._configuration.name, this._configuration.version) // eslint-disable-line prefer-const
+      let openRequest
+      try {
+        // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
+        openRequest = indexedDB.open(this._configuration.name, this._configuration.version) // eslint-disable-line prefer-const
+      } catch (error) {
+        reject(error)
+      }
       openRequest.onupgradeneeded = this._create.bind(this, openRequest)
+      openRequest.onblocked = () => reject(new Error(CedictPermanentStorage.errMsgs.BLOCKED_ON_OPEN))
 
       openRequest.onsuccess = () => {
         this._db = openRequest.result
+        this._db.onversionchange = this._versionchangeHandler.bind(this, reject)
         this._stores.forEach(store => store.associateWith(this._db))
         resolve()
       }
@@ -176,6 +183,12 @@ export default class CedictPermanentStorage extends Storage {
       })
     })
   }
+
+  async _versionchangeHandler (reject) {
+    await this.disconnect()
+    console.error(CedictPermanentStorage.errMsgs.VERSION_CHANGE)
+    reject(new Error(CedictPermanentStorage.errMsgs.VERSION_CHANGE))
+  }
 }
 
 CedictPermanentStorage.errMsgs = {
@@ -185,5 +198,7 @@ CedictPermanentStorage.errMsgs = {
   NO_META: 'Metadata store has no records',
   DESTRUCTION_ERROR: 'Unable to destroy a storage',
   MISSING_STORE: 'The store requested does not exist',
-  CLOSED_CONNECTION: 'Connection to the store is closed'
+  CLOSED_CONNECTION: 'Connection to the store is closed',
+  BLOCKED_ON_OPEN: 'Request to open a database has been blocked',
+  VERSION_CHANGE: 'A database change has occurred. You should refresh this browser window or close it down.'
 }

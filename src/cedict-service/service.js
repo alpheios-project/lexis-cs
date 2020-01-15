@@ -14,7 +14,7 @@ const messagingServiceName = 'CedictRequestListener'
  */
 const CedictDestinationConfig = {
   name: 'cedict',
-  targetURL: 'https://lexisdev.s3.us-east-2.amazonaws.com/index.html', // Can also use http://data-dev.alpheios.net
+  targetURL: 'https://lexis-dev.alpheios.net',
   targetIframeID: 'alpheios-lexis-cs'
 }
 

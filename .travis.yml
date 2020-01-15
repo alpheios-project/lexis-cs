@@ -11,6 +11,7 @@ deploy:
   region: us-east-2
   local-dir: dist/dev
   acl: public_read
+  cache_control: "no-cache"
   on:
     repo: alpheios-project/lexis-cs
     branch: master
