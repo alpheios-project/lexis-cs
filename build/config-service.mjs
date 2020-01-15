@@ -12,10 +12,16 @@ const webpack = {
   },
 
   production: {
-    output: { filename: 'service.min.js' }
+    output: {
+      path: path.join(projectRoot, 'dist/prod/'),
+      filename: 'service.min.js'
+    }
   },
   development: {
-    output: { filename: 'service.js' }
+    output: {
+      path: path.join(projectRoot, 'dist/dev/'),
+      filename: 'service.js'
+    }
   }
 }
 

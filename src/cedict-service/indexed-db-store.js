@@ -293,12 +293,16 @@ export default class IndexedDbStore extends Store {
    *          in a store and is rejected if operation failed.
    */
   count () {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this._assertDb()
-      const transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ)
-      const store = transaction.objectStore(this._configuration.name)
-      const countRequest = store.count()
-      countRequest.onsuccess = () => { resolve(countRequest.result) }
+      try {
+        const transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ)
+        const store = transaction.objectStore(this._configuration.name)
+        const countRequest = store.count()
+        countRequest.onsuccess = () => { resolve(countRequest.result) }
+      } catch (error) {
+        reject(error)
+      }
     })
   }
 }

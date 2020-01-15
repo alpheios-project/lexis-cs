@@ -9,8 +9,9 @@ deploy:
     secure: CuZt0CP5fTew2f5hzA+10ze11w/lY/JRdiRjGPC59QXBViMDPy8ERYLCzxCsGQRNoytbwnLj/Gss/v0G//+aZasvqtcWM9f279ient3iLo38JJ3/jfsUzUs5f7t4be0wBHMK9AKs0treFq3Ze+04mZwRG40pvqAgKjvj/cqxgcwaVQSP644M0QMbqSbXQo5egXP4TEHTYm4nz32RXFV+j5Vkz9YNKDDmu0fbp7FTQcTpcBy3kEdDx25ZJj3EGyB0SBBAfws2KIInrcrgHVxZCDOrUwCa3gjsCDCYvfZ1633gTiquCBORsHwzMMHY9X4BOw6r65vlu8qxC546StMX+jZjSYz88l9JVbsL3iVFX4rNbH9aXZ5tInmcsiFLQRa2b+M/QEuWxFRqNNLKzamhDttLG+v+c3P/u5wm+bZKYdaeXfzTZDX4nbwMfIqn+PGHcQpgil9tT37sqaGnt6+nd4s2/ZEKxxFEAwcuepkXLPoQHLYyRviZCyS8KiE+FqCvYDHwT72oI/Xpk+z1RdveXwwPQNtZzA3AXcSY7Ogxh0/B+D1Cbxlmq0kWVjv+PpWh3EDV5o84YCN/ToJ+CQTk1s5X9/ZJF/65+AhxGvwGEOGuuw2FWCFMCRhqX4W3R6SyZv+4+wfW/CJM3Paa53GHfpHgWgfHejAdamSlb5UOm/0=
   bucket: lexisdev
   region: us-east-2
-  local-dir: dist
-  acl: public_read_write
+  local-dir: dist/dev
+  acl: public_read
+  cache_control: "no-cache"
   on:
     repo: alpheios-project/lexis-cs
-    branch: cedict
+    branch: master

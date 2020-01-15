@@ -4,6 +4,7 @@ const webpack = {
   common: {
     context: projectRoot,
     entry: './index.js',
+    output: { path: path.join(projectRoot, 'dist/test/') },
     resolve: {
       alias: {
         '@lexisCs': path.join(projectRoot, 'src')
