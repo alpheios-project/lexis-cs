@@ -588,8 +588,12 @@ class Cedict {
               }
               // Even if permanent storage is disabled we will still populate in order to avoid downloading data again
               return this._populatePermanentStorage(meta, dictionary)
-                .then(() => Promise.resolve())
+                .then(() => {
+                  console.info('PopulatePermanentStorage succeeded')
+                  return Promise.resolve()
+                })
                 .catch((error) => {
+                  console.info('PopulatePermanentStorage failed')
                   console.error('Unable to store CEDICT data to IndexedDB.', error)
                   // Cannot write CEDICT data to IndexedDB. Will fall back to an in-memory location
                   if (!this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
@@ -601,11 +605,12 @@ class Cedict {
                 })
             })
         })
-        .catch((error) => { console.error(error); reject(error) })
         .then(() => {
+          console.info('Setting a ready state')
           this.isReady = true
           resolve()
         })
+        .catch((error) => { reject(error) })
     })
   }
 
@@ -777,10 +782,12 @@ class Cedict {
    *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
    */
   _downloadData () {
+    console.info('Need to download data')
     const requests = this._configuration.data.chunks.map(chunk => this._loadJson(`${this._configuration.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
       let meta = chunks[0].metadata // eslint-disable-line prefer-const
-      delete this.cedict.meta.chunkNumber
+      meta.cedict = chunks[0].cedictMeta
+      delete meta.chunkNumber
       return { meta, dictionary: chunks.map(piece => piece.entries).flat() }
     })
   }
@@ -830,15 +837,19 @@ class Cedict {
    * @returns {Promise<undefined>|Promise<Error>} A promise that is resolved if data has been written successfully
    *          or is reject if write operations failed.
    */
-  _populatePermanentStorage (meta, dictionary) {
+  async _populatePermanentStorage (meta, dictionary) {
     /*
     `update` is used instead of `insert` here because `meta` store has only one record
     and it's index must be as defined in `this.cedict.metaKey`.
     Only the use of `update` allow to specify an index for the record.
+    Update and insert operations are executed one after the other to avoid mutual blocking.
      */
-    const metaUpdate = this._storage.getStore('meta').update([meta, this.cedict.metaKey])
-    const dictionaryUpdate = this._storage.getStore('dictionary').insert(dictionary)
-    return Promise.all([metaUpdate, dictionaryUpdate])
+    console.info('populatePermanentStorage')
+    const metaUpdate = await this._storage.getStore('meta').update([meta, this.cedict.metaKey])
+    console.info('After meta update')
+    const dictionaryUpdate = await this._storage.getStore('dictionary').insert(dictionary)
+    console.info('After dictionary update')
+    // return Promise.all([metaUpdate/*, dictionaryUpdate*/])
   }
 
   /**
@@ -1142,17 +1153,20 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
    *          successfully and is rejected if insertion failed.
    */
   insert (records) {
+    console.info('Insert is called')
     return new Promise((resolve, reject) => {
       if (!records) { resolve() } // Do nothing
       this._assertDb()
       if (!Array.isArray(records)) { records = [records] }
       let transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ_WRITE) // eslint-disable-line prefer-const
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = (event) => reject(event)
+      transaction.oncomplete = () => { console.info('Insert is completed'); resolve() }
+      transaction.onerror = (event) => { console.info('Insert error:', event); reject(event) }
       const store = transaction.objectStore(this._configuration.name)
+      console.info('Started to insert records')
       records.forEach(record => {
         let addRequest = store.add(record) // eslint-disable-line prefer-const
         addRequest.onerror = () => {
+          console.info('Insert addRequest on error', addRequest.error)
           if (addRequest.error.name === 'ConstraintError') {
             reject(new Error(IndexedDbStore.errMsgs.DUPLICATE_RECORD))
           }
@@ -1176,17 +1190,18 @@ class IndexedDbStore extends _lexisCs_cedict_service_store_js__WEBPACK_IMPORTED_
    */
   update (keyValRecordsArr) {
     return new Promise((resolve, reject) => {
+      console.info('Update is called')
       if (!keyValRecordsArr) resolve() // Do nothing
       if (!Array.isArray(keyValRecordsArr)) reject(new Error('Records format must be [key,val] or [[key,val]]'))
       if (!Array.isArray(keyValRecordsArr[0])) { keyValRecordsArr = [keyValRecordsArr] }
       this._assertDb()
       const transaction = this._db.transaction(this._configuration.name, IndexedDbStore.accessModes.READ_WRITE)
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = (error) => reject(error)
+      transaction.oncomplete = () => { console.info('Update request is completed'); resolve() }
+      transaction.onerror = (error) => { console.info('Update request error'); reject(error) }
       const store = transaction.objectStore(this._configuration.name)
       keyValRecordsArr.forEach(record => {
         let addRequest = this._isAutoPrimaryKey ? store.put(record[0], record[1]) : store.put(record[0]) // eslint-disable-line prefer-const
-        addRequest.onerror = () => reject(addRequest.error)
+        addRequest.onerror = () => { console.info('Update addRequest error:', addRequest.error); reject(addRequest.error) }
       })
     })
   }
@@ -1329,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cedictData.init().then(() => {
     // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
-  }).catch((error) => console.error(error))
+  }).catch((error) => console.error(`Cannot initialize CEDICT service: ${error.message}`))
 })
 
 
