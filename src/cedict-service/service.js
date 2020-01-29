@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error(error)
     return
   }
-  cedictData.init().then(() => {
+  cedictData.initSafari().then(() => {
     // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
   }).catch((error) => console.error(`Cannot initialize CEDICT service: ${error.message}`))

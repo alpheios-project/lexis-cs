@@ -165,6 +165,23 @@ export default class Cedict {
     })
   }
 
+  initSafari () {
+    return new Promise((resolve, reject) => {
+      this._downloadData()
+        .then(({ meta, dictionary }) => {
+          if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
+            this._populateVolatileStorage(meta, dictionary)
+          }
+        })
+        .then(() => {
+          console.info('Setting a ready state')
+          this.isReady = true
+          resolve()
+        })
+        .catch((error) => { reject(error) })
+    })
+  }
+
   /**
    * Deletes all permanent data associated with CEDICT data object.
    *
