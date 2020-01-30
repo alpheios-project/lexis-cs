@@ -1328,7 +1328,6 @@ const messageHandler = (request, responseFn) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.info('Adding a DOMContentLoaded listener')
   const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_2__["default"](messagingServiceName, new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_4__["default"](_lexisCs_configurations_destinations_js__WEBPACK_IMPORTED_MODULE_0__["CedictDestinationConfig"]))
   service.registerReceiverCallback(_lexisCs_configurations_destinations_js__WEBPACK_IMPORTED_MODULE_0__["CedictDestinationConfig"].name, messageHandler)
 

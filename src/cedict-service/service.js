@@ -63,7 +63,6 @@ const messageHandler = (request, responseFn) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.info('Adding a DOMContentLoaded listener')
   const service = new MessagingService(messagingServiceName, new Destination(CedictDestinationConfig))
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
