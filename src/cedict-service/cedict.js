@@ -1,6 +1,7 @@
 /**
  * @module CedictData
  */
+import { CedictCharacterForms } from '@lexisCs/cedict-service/constants.js'
 import CedictPermanentStorage from '@lexisCs/cedict-service/cedict-permanent-storage.js'
 
 /** A class to serve data from CEDICT */
@@ -62,14 +63,14 @@ export default class Cedict {
     NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
     If you will change this constant please update it in the stab as well.
      */
-    this.preferredCharacterForm = Cedict.characterForms.TRADITIONAL
+    this.preferredCharacterForm = CedictCharacterForms.TRADITIONAL
 
     /*
     This is a character form we will fallback into if matches for the preferred one are not found.
     NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
     If you will change this constant please update it in the stab as well.
      */
-    this.fallbackCharacterForm = Cedict.characterForms.SIMPLIFIED
+    this.fallbackCharacterForm = CedictCharacterForms.SIMPLIFIED
   }
 
   /**
@@ -173,11 +174,12 @@ export default class Cedict {
   /**
    * Checks if the character form supplied is the one we have records upon.
    *
-   * @param {Cedict.characterForms} characterForm - A string identifying a character form.
+   * @param {string} characterForm - A string identifying a character form
+   *        as defined in CedictCharacterForms.
    * @returns {boolean} True if there is information on this form, false otherwise.
    */
   static isSupportedCharacterForm (characterForm) {
-    return Array.from(Object.values(Cedict.characterForms)).includes(characterForm)
+    return Array.from(Object.values(CedictCharacterForms)).includes(characterForm)
   }
 
   /**
@@ -281,7 +283,7 @@ export default class Cedict {
         if (this._configuration.storage.stores.dictionary.volatileStorage.indexed) {
           // Use in memory indexes to find values
           words.forEach(word => {
-            const idx = (characterForm === Cedict.characterForms.SIMPLIFIED)
+            const idx = (characterForm === CedictCharacterForms.SIMPLIFIED)
               ? this.cedict.simplifiedHeadwordsIdx.get(word)
               : this.cedict.traditionalHeadwordsIdx.get(word)
             result[word] = idx ? idx.map(idx => this.cedict.dictionary.get(idx)) : []
@@ -289,7 +291,7 @@ export default class Cedict {
         } else {
           // Indexes are not available, iterate over an array of values
           this.cedict.dictionary.forEach(entry => {
-            const hw = (characterForm === Cedict.characterForms.SIMPLIFIED) ? entry.simplified.headword : entry.traditional.headword
+            const hw = (characterForm === CedictCharacterForms.SIMPLIFIED) ? entry.simplified.headword : entry.traditional.headword
             words.forEach(word => {
               if (hw === word) {
                 result[word].push(entry)
@@ -315,7 +317,7 @@ export default class Cedict {
    *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromPermanentStorage (words, characterForm) {
-    const index = (characterForm === Cedict.characterForms.SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
+    const index = (characterForm === CedictCharacterForms.SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
     return this._storage.getStore('dictionary').getEntries(words, { index })
   }
 
@@ -408,16 +410,6 @@ export default class Cedict {
   static _getResultRecordsCount (resultsObject) {
     return Object.values(resultsObject).flat().length
   }
-}
-
-/**
- * Character forms that are supported with the current version of the service.
- *
- * @type {{SIMPLIFIED: string, TRADITIONAL: string}}
- */
-Cedict.characterForms = {
-  SIMPLIFIED: 'simplified',
-  TRADITIONAL: 'traditional'
 }
 
 Cedict.errMsgs = {

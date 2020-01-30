@@ -446,10 +446,12 @@ CedictPermanentStorage.errMsgs = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Cedict; });
-/* harmony import */ var _lexisCs_cedict_service_cedict_permanent_storage_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/cedict-service/cedict-permanent-storage.js */ "./src/cedict-service/cedict-permanent-storage.js");
+/* harmony import */ var _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/cedict-service/constants.js */ "./src/cedict-service/constants.js");
+/* harmony import */ var _lexisCs_cedict_service_cedict_permanent_storage_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/cedict-service/cedict-permanent-storage.js */ "./src/cedict-service/cedict-permanent-storage.js");
 /**
  * @module CedictData
  */
+
 
 
 /** A class to serve data from CEDICT */
@@ -468,7 +470,7 @@ class Cedict {
      */
     this.isReady = false
 
-    this._storage = new _lexisCs_cedict_service_cedict_permanent_storage_js__WEBPACK_IMPORTED_MODULE_0__["default"](this._configuration.storage)
+    this._storage = new _lexisCs_cedict_service_cedict_permanent_storage_js__WEBPACK_IMPORTED_MODULE_1__["default"](this._configuration.storage)
 
     /**
      * If CEDICT be stored in memory this object will hold all its data.
@@ -511,14 +513,14 @@ class Cedict {
     NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
     If you will change this constant please update it in the stab as well.
      */
-    this.preferredCharacterForm = Cedict.characterForms.TRADITIONAL
+    this.preferredCharacterForm = _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_0__["CedictCharacterForms"].TRADITIONAL
 
     /*
     This is a character form we will fallback into if matches for the preferred one are not found.
     NOTE: This constant is used inside a stub in `fixtures/src/cedict/cedict-fixture.js`.
     If you will change this constant please update it in the stab as well.
      */
-    this.fallbackCharacterForm = Cedict.characterForms.SIMPLIFIED
+    this.fallbackCharacterForm = _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_0__["CedictCharacterForms"].SIMPLIFIED
   }
 
   /**
@@ -622,11 +624,12 @@ class Cedict {
   /**
    * Checks if the character form supplied is the one we have records upon.
    *
-   * @param {Cedict.characterForms} characterForm - A string identifying a character form.
+   * @param {string} characterForm - A string identifying a character form
+   *        as defined in CedictCharacterForms.
    * @returns {boolean} True if there is information on this form, false otherwise.
    */
   static isSupportedCharacterForm (characterForm) {
-    return Array.from(Object.values(Cedict.characterForms)).includes(characterForm)
+    return Array.from(Object.values(_lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_0__["CedictCharacterForms"])).includes(characterForm)
   }
 
   /**
@@ -730,7 +733,7 @@ class Cedict {
         if (this._configuration.storage.stores.dictionary.volatileStorage.indexed) {
           // Use in memory indexes to find values
           words.forEach(word => {
-            const idx = (characterForm === Cedict.characterForms.SIMPLIFIED)
+            const idx = (characterForm === _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_0__["CedictCharacterForms"].SIMPLIFIED)
               ? this.cedict.simplifiedHeadwordsIdx.get(word)
               : this.cedict.traditionalHeadwordsIdx.get(word)
             result[word] = idx ? idx.map(idx => this.cedict.dictionary.get(idx)) : []
@@ -738,7 +741,7 @@ class Cedict {
         } else {
           // Indexes are not available, iterate over an array of values
           this.cedict.dictionary.forEach(entry => {
-            const hw = (characterForm === Cedict.characterForms.SIMPLIFIED) ? entry.simplified.headword : entry.traditional.headword
+            const hw = (characterForm === _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_0__["CedictCharacterForms"].SIMPLIFIED) ? entry.simplified.headword : entry.traditional.headword
             words.forEach(word => {
               if (hw === word) {
                 result[word].push(entry)
@@ -764,7 +767,7 @@ class Cedict {
    *          If an error occurred, the promise is rejected with an error.
    */
   _getWordsFromPermanentStorage (words, characterForm) {
-    const index = (characterForm === Cedict.characterForms.SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
+    const index = (characterForm === _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_0__["CedictCharacterForms"].SIMPLIFIED) ? 'simplifiedHwIdx' : 'traditionalHwIdx'
     return this._storage.getStore('dictionary').getEntries(words, { index })
   }
 
@@ -859,16 +862,6 @@ class Cedict {
   }
 }
 
-/**
- * Character forms that are supported with the current version of the service.
- *
- * @type {{SIMPLIFIED: string, TRADITIONAL: string}}
- */
-Cedict.characterForms = {
-  SIMPLIFIED: 'simplified',
-  TRADITIONAL: 'traditional'
-}
-
 Cedict.errMsgs = {
   CONF_NO_STORAGE: 'Storage tree is missing from a configuration',
   CONF_NO_STORES: 'Stores data is missing from a configuration',
@@ -889,6 +882,29 @@ Cedict.errMsgs = {
   CONF_NO_DATA_CHUNKS: 'Data chunks are missing from a configuration',
   NOT_READY: 'CEDICT data is not ready',
   BAD_CHAR_FORM: 'Unknown character form'
+}
+
+
+/***/ }),
+
+/***/ "./src/cedict-service/constants.js":
+/*!*****************************************!*\
+  !*** ./src/cedict-service/constants.js ***!
+  \*****************************************/
+/*! exports provided: CedictCharacterForms */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictCharacterForms", function() { return CedictCharacterForms; });
+/**
+ * Character forms that are supported with the current version of the service.
+ *
+ * @type {{SIMPLIFIED: string, TRADITIONAL: string}}
+ */
+const CedictCharacterForms = {
+  SIMPLIFIED: 'simplified',
+  TRADITIONAL: 'traditional'
 }
 
 
@@ -1236,35 +1252,26 @@ IndexedDbStore.errMsgs = {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictDestinationConfig", function() { return CedictDestinationConfig; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictCharacterForms", function() { return CedictCharacterForms; });
-/* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
-/* harmony import */ var _lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/messaging/messages/response-message.js */ "./src/messaging/messages/response-message.js");
-/* harmony import */ var _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-iframe-destination.js */ "./src/messaging/destinations/window-iframe-destination.js");
-/* harmony import */ var _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @lexisCs/cedict-service/cedict.js */ "./src/cedict-service/cedict.js");
-/* harmony import */ var _lexisCs_configurations_cedict_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @lexisCs/configurations/cedict.js */ "./src/configurations/cedict.js");
+/* harmony import */ var _lexisCs_configurations_destinations_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @lexisCs/configurations/destinations.js */ "./src/configurations/destinations.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "CedictDestinationConfig", function() { return _lexisCs_configurations_destinations_js__WEBPACK_IMPORTED_MODULE_0__["CedictDestinationConfig"]; });
+
+/* harmony import */ var _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @lexisCs/cedict-service/constants.js */ "./src/cedict-service/constants.js");
+/* harmony reexport (safe) */ __webpack_require__.d(__webpack_exports__, "CedictCharacterForms", function() { return _lexisCs_cedict_service_constants_js__WEBPACK_IMPORTED_MODULE_1__["CedictCharacterForms"]; });
+
+/* harmony import */ var _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @lexisCs/messaging/messaging-service.js */ "./src/messaging/messaging-service.js");
+/* harmony import */ var _lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @lexisCs/messaging/messages/response-message.js */ "./src/messaging/messages/response-message.js");
+/* harmony import */ var _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @lexisCs/messaging/destinations/window-iframe-destination.js */ "./src/messaging/destinations/window-iframe-destination.js");
+/* harmony import */ var _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @lexisCs/cedict-service/cedict.js */ "./src/cedict-service/cedict.js");
+/* harmony import */ var _lexisCs_configurations_cedict_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @lexisCs/configurations/cedict.js */ "./src/configurations/cedict.js");
 
 
 
 
 
-const CedictCharacterForms = _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3__["default"].characterForms
+
+
 
 const messagingServiceName = 'CedictRequestListener'
-
-console.info('service.js file is loaded')
-
-/**
- * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
- *
- * @type {{targetIframeID: string, name: string, targetURL: string}}
- */
-const CedictDestinationConfig = {
-  name: 'cedict',
-  targetURL: 'https://lexis-dev.alpheios.net',
-  targetIframeID: 'alpheios-lexis-cs'
-}
-
 let cedictData
 
 /*
@@ -1305,7 +1312,7 @@ NOTE: fixtures/src/cedict/cedict-fixture.js implements a stub for `getWords` req
 
 const messageHandler = (request, responseFn) => {
   if (!cedictData.isReady) {
-    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Uninitialized')))
+    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_3__["default"].Error(request, new Error('Uninitialized')))
     return
   }
 
@@ -1313,20 +1320,20 @@ const messageHandler = (request, responseFn) => {
     // This is a get words request
     cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
       .then((result) => {
-        responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Success(request, result))
-      }).catch((error) => responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, error)))
+        responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_3__["default"].Success(request, result))
+      }).catch((error) => responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_3__["default"].Error(request, error)))
   } else {
-    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_1__["default"].Error(request, new Error('Unsupported request')))
+    responseFn(_lexisCs_messaging_messages_response_message_js__WEBPACK_IMPORTED_MODULE_3__["default"].Error(request, new Error('Unsupported request')))
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   console.info('Adding a DOMContentLoaded listener')
-  const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](messagingServiceName, new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](CedictDestinationConfig))
-  service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
+  const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_2__["default"](messagingServiceName, new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_4__["default"](_lexisCs_configurations_destinations_js__WEBPACK_IMPORTED_MODULE_0__["CedictDestinationConfig"]))
+  service.registerReceiverCallback(_lexisCs_configurations_destinations_js__WEBPACK_IMPORTED_MODULE_0__["CedictDestinationConfig"].name, messageHandler)
 
   try {
-    cedictData = new _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_3__["default"](_lexisCs_configurations_cedict_js__WEBPACK_IMPORTED_MODULE_4__["default"])
+    cedictData = new _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED_MODULE_5__["default"](_lexisCs_configurations_cedict_js__WEBPACK_IMPORTED_MODULE_6__["default"])
   } catch (error) {
     console.error(error)
     return
@@ -1783,6 +1790,30 @@ const cedict = {
 }
 
 /* harmony default export */ __webpack_exports__["default"] = (cedict);
+
+
+/***/ }),
+
+/***/ "./src/configurations/destinations.js":
+/*!********************************************!*\
+  !*** ./src/configurations/destinations.js ***!
+  \********************************************/
+/*! exports provided: CedictDestinationConfig */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CedictDestinationConfig", function() { return CedictDestinationConfig; });
+/**
+ * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
+ *
+ * @type {{targetIframeID: string, name: string, targetURL: string}}
+ */
+const CedictDestinationConfig = {
+  name: 'cedict',
+  targetURL: 'https://lexis-dev.alpheios.net',
+  targetIframeID: 'alpheios-lexis-cs'
+}
 
 
 /***/ }),

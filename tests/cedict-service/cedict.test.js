@@ -1,6 +1,7 @@
 /* eslint-env jest */
 import Cedict from '@lexisCs/cedict-service/cedict'
 import CedictPermanentStorage from '@lexisCs/cedict-service/cedict-permanent-storage.js'
+import { CedictCharacterForms } from '@lexisCs/cedict-service/constants.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
 import { CedictFixture } from 'alpheios-fixtures'
 require('fake-indexeddb/auto')
@@ -161,11 +162,11 @@ describe('Cedict class', () => {
   })
 
   it('isSupportedCharacterForm: shall recognize simplified Chinese', async () => {
-    await expect(Cedict.isSupportedCharacterForm(Cedict.characterForms.SIMPLIFIED)).toBeTruthy()
+    await expect(Cedict.isSupportedCharacterForm(CedictCharacterForms.SIMPLIFIED)).toBeTruthy()
   })
 
   it('isSupportedCharacterForm: shall recognize traditional Chinese', async () => {
-    await expect(Cedict.isSupportedCharacterForm(Cedict.characterForms.TRADITIONAL)).toBeTruthy()
+    await expect(Cedict.isSupportedCharacterForm(CedictCharacterForms.TRADITIONAL)).toBeTruthy()
   })
 
   it('isSupportedCharacterForm: shall fail on unsupported form', async () => {

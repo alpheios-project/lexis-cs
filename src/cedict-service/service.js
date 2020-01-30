@@ -1,25 +1,12 @@
+import { CedictDestinationConfig } from '@lexisCs/configurations/destinations.js'
+import { CedictCharacterForms } from '@lexisCs/cedict-service/constants.js'
 import MessagingService from '@lexisCs/messaging/messaging-service.js'
 import ResponseMessage from '@lexisCs/messaging/messages/response-message.js'
 import Destination from '@lexisCs/messaging/destinations/window-iframe-destination.js'
 import Cedict from '@lexisCs/cedict-service/cedict.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
-const CedictCharacterForms = Cedict.characterForms
 
 const messagingServiceName = 'CedictRequestListener'
-
-console.info('service.js file is loaded')
-
-/**
- * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
- *
- * @type {{targetIframeID: string, name: string, targetURL: string}}
- */
-const CedictDestinationConfig = {
-  name: 'cedict',
-  targetURL: 'https://lexis-dev.alpheios.net',
-  targetIframeID: 'alpheios-lexis-cs'
-}
-
 let cedictData
 
 /*
