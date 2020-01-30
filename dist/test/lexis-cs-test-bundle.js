@@ -344,7 +344,6 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    *          in `meta` and `dictionary` _stores.
    */
   getIntegrityData () {
-    console.info('getIntegrityData()')
     this._assertConnection()
     let integrityRequests
     try {
@@ -356,8 +355,6 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
     return Promise.all(integrityRequests).then(([recordsInMeta, recordsInDictionary, metadata]) => {
       if (!metadata || metadata.length === 0) throw new Error(CedictPermanentStorage.errMsgs.NO_META)
       return { recordsInMeta, recordsInDictionary, metadata: metadata[0] }
-    }).catch(error => {
-      return Promise.reject(error)
     })
   }
 
@@ -369,32 +366,25 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    *          established successfully or is rejected if connection fails.
    */
   connect () {
-    console.info('connect')
     return new Promise((resolve, reject) => {
-      console.info('Connect function', this._configuration.name, this._configuration.version)
       let openRequest
       try {
         // If database does not exist, openRequest will create it and will trigger an onupgradeneeded followed by onsuccess
         openRequest = indexedDB.open(this._configuration.name, this._configuration.version) // eslint-disable-line prefer-const
       } catch (error) {
-        console.info('indexedDB.open exception', error)
         reject(error)
       }
-      console.info('After openRequest is created', openRequest)
       openRequest.onupgradeneeded = this._create.bind(this, openRequest)
-      openRequest.onupgradeneeded = () => { console.info('Onupgradeneede has been called') }
-      openRequest.onblocked = () => { console.info('onblocked has been called'); reject(new Error(CedictPermanentStorage.errMsgs.BLOCKED_ON_OPEN)) }
+      openRequest.onblocked = () => reject(new Error(CedictPermanentStorage.errMsgs.BLOCKED_ON_OPEN))
 
       openRequest.onsuccess = () => {
-        console.info('Connect success')
         this._db = openRequest.result
-        this._db.onversionchange = this._versionchangeHandler.bind(this)
+        this._db.onversionchange = this._versionchangeHandler.bind(this, reject)
         this._stores.forEach(store => store.associateWith(this._db))
         resolve()
       }
 
-      openRequest.onerror = (error) => { console.info('Connection error'); reject(error) }
-      console.info('connect fallen through')
+      openRequest.onerror = (error) => { reject(error) }
     })
   }
 
@@ -435,10 +425,8 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
    *                    is rejected otherwise.
    */
   _create (openRequest, reject) {
-    console.info('Create is called')
     this._db = openRequest.result
     const storeCreateRequests = Array.from(this._stores.values()).map(store => store.associateWith(this._db).create())
-    console.info('Before create return')
     return Promise.all(storeCreateRequests)
   }
 
@@ -459,9 +447,10 @@ class CedictPermanentStorage extends _lexisCs_cedict_service_storage_js__WEBPACK
     })
   }
 
-  async _versionchangeHandler () {
+  async _versionchangeHandler (reject) {
     await this.disconnect()
     console.error(CedictPermanentStorage.errMsgs.VERSION_CHANGE)
+    reject(new Error(CedictPermanentStorage.errMsgs.VERSION_CHANGE))
   }
 }
 
@@ -594,24 +583,48 @@ class Cedict {
   /**
    * Initializes a data object.
    *
-   * @returns {Promise<undefined> | Promise<Error>} - A promise
+   * @returns {Promise<undefined> | Promise<Error>} Returns a promise that is resolved with undefined
+   *          if initialization succeeded or is rejected with an error object if initialization failed.
    */
-  init () {
+  async init () {
+    let indexedDbSupported = true
+    try {
+      // Try to establish connection to an IndexedDB
+      await this._storage.connect()
+    } catch (error) {
+      if (error.name === Cedict.errNames.SECURITY_ERR) {
+        /*
+        Security error indicates that IndexedDB is not available in the current environment.
+        This can be a case of a cross origin use of IndexedDB in Safari.
+         */
+        indexedDbSupported = false
+        console.warn('LexisCS will disable IndexedDB because it is not supported in the current environment')
+      } else {
+        throw error
+      }
+    }
+    return indexedDbSupported ? this._initWithIndexedDb() : this._initWithoutIndexedDb()
+  }
+
+  /**
+   * This initialization method is called when IndexedDB is available, i.e. in majority of cases.
+   *
+   * @returns {Promise<undefined> | Promise<Error>} Returns a promise that is resolved with undefined
+   *          if initialization succeeded or is rejected with an error object if initialization failed.
+   * @private
+   */
+  _initWithIndexedDb () {
+    /*
+    This method is called when a caller has already establish a connection to the store successfully
+    `storage.connect()` will create a database if it does not exist yet.
+     */
     return new Promise((resolve, reject) => {
-      console.info('CEDICT init has started')
-      // `storage.connect()` will create a database if it does not exist yet.
-      return this._storage.connect()
-        .catch((error) => {
-          console.error('Connection to storage cannot be established')
-          reject(error)
-        })
-        .then(() => { console.info('Before getIntegrityData()'); this._storage.getIntegrityData() })
+      return this._storage.getIntegrityData()
         .then((integrityData) => {
           /*
           Integrity data has been returned successfully which means database structure is OK.
           Let's check if there is a new version of data available on a server.
            */
-          console.info('Integrity data has been retrieved')
           if (!this.isStorageIntact(integrityData)) {
             throw new Error('Storage is outdated')
           }
@@ -623,14 +636,12 @@ class Cedict {
           }
         })
         .catch(() => {
-          console.info('Need to update permanent storage data')
           // Data in permanent storage needs to be updated
           return this.removePermanentData()
-          // `connect()` will create storage and stores
-            .then(() => { console.info('Before storage.connect()'); this._storage.connect() })
+            // `connect()` will create storage and stores
+            .then(() => this._storage.connect())
             .then(() => this._downloadData())
             .then(({ meta, dictionary }) => {
-              console.info('All data has been downloaded')
               if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
                 this._populateVolatileStorage(meta, dictionary)
               }
@@ -649,12 +660,37 @@ class Cedict {
                 })
             })
         })
-        .catch((error) => { console.error(error); reject(error) })
         .then(() => {
           this.isReady = true
           resolve()
         })
+        .catch((error) => { reject(error) })
     })
+  }
+
+  /**
+   * This initialization method is for situations when IndexedDB is not available.
+   * This can happen in, for example, Safari, which does not allow to access
+   * cross domain IndexedDBs from within an iframe.
+   * In that case we will rely on in-memory placement only.
+   *
+   * @returns {Promise<void>|Promise<Error|*>} Promise that is resolved with undefined if initialization
+   *          succeeded or is rejected with an error object if initialization fails.
+   * @private
+   */
+  async _initWithoutIndexedDb () {
+    const { meta, dictionary } = await this._downloadData()
+    /*
+    This init method is called when IndexedDB is not available.
+    Because of this, we will force disable an IndexedDB permanent storage in a configuration.
+    We will also force enable an indexed version of a volatile storage,
+    that will be the only storage we will use in that case.
+     */
+    this._configuration.storage.stores.dictionary.permanentStorage.enabled = false
+    this._configuration.storage.stores.dictionary.volatileStorage.enabled = true
+    this._configuration.storage.stores.dictionary.volatileStorage.indexed = true
+    await this._populateVolatileStorage(meta, dictionary)
+    this.isReady = true
   }
 
   /**
@@ -664,7 +700,6 @@ class Cedict {
    *          or rejected if operation failed.
    */
   removePermanentData () {
-    console.info('removePermanentData')
     return this._storage.destroy()
   }
 
@@ -826,12 +861,12 @@ class Cedict {
    *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
    */
   _downloadData () {
-    console.info('Download data started')
     const requests = this._configuration.data.chunks.map(chunk => this._loadJson(`${this._configuration.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
-      console.info('All chunks has been loaded')
       let meta = chunks[0].metadata // eslint-disable-line prefer-const
-      delete this.cedict.meta.chunkNumber
+      // CEDICT metadata will be stored within a `cedict` property of an app-wide metadata object
+      meta.cedict = chunks[0].cedictMeta
+      delete meta.chunkNumber
       return { meta, dictionary: chunks.map(piece => piece.entries).flat() }
     })
   }
@@ -881,15 +916,15 @@ class Cedict {
    * @returns {Promise<undefined>|Promise<Error>} A promise that is resolved if data has been written successfully
    *          or is reject if write operations failed.
    */
-  _populatePermanentStorage (meta, dictionary) {
+  async _populatePermanentStorage (meta, dictionary) {
     /*
     `update` is used instead of `insert` here because `meta` store has only one record
     and it's index must be as defined in `this.cedict.metaKey`.
     Only the use of `update` allow to specify an index for the record.
+    Update and insert operations are executed one after the other to avoid mutual blocking.
      */
-    const metaUpdate = this._storage.getStore('meta').update([meta, this.cedict.metaKey])
-    const dictionaryUpdate = this._storage.getStore('dictionary').insert(dictionary)
-    return Promise.all([metaUpdate, dictionaryUpdate])
+    await this._storage.getStore('meta').update([meta, this.cedict.metaKey])
+    await this._storage.getStore('dictionary').insert(dictionary)
   }
 
   /**
@@ -938,6 +973,13 @@ Cedict.errMsgs = {
   CONF_NO_DATA_CHUNKS: 'Data chunks are missing from a configuration',
   NOT_READY: 'CEDICT data is not ready',
   BAD_CHAR_FORM: 'Unknown character form'
+}
+
+/*
+Names of errors that can be thrown during operations
+ */
+Cedict.errNames = {
+  SECURITY_ERR: 'SecurityError'
 }
 
 
@@ -1308,7 +1350,7 @@ const messagingServiceName = 'CedictRequestListener'
  */
 const CedictDestinationConfig = {
   name: 'cedict',
-  targetURL: 'https://lexis-dev.alpheios.net', // Can also use http://data-dev.alpheios.net
+  targetURL: 'https://lexis-dev.alpheios.net',
   targetIframeID: 'alpheios-lexis-cs'
 }
 
@@ -1380,7 +1422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cedictData.init().then(() => {
     // TODO: A message to ease manual testing. Shall be removed in production
     console.log('CEDICT service is ready')
-  }).catch((error) => console.error(error))
+  }).catch((error) => console.error(`Cannot initialize CEDICT service: ${error.message}`))
 })
 
 

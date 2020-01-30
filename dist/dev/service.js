@@ -556,11 +556,16 @@ class Cedict {
   async init () {
     let indexedDbSupported = true
     try {
-      // Trying to establish connection to a database
+      // Try to establish connection to an IndexedDB
       await this._storage.connect()
     } catch (error) {
       if (error.name === Cedict.errNames.SECURITY_ERR) {
+        /*
+        Security error indicates that IndexedDB is not available in the current environment.
+        This can be a case of a cross origin use of IndexedDB in Safari.
+         */
         indexedDbSupported = false
+        console.warn('LexisCS will disable IndexedDB because it is not supported in the current environment')
       } else {
         throw error
       }
