@@ -139,12 +139,8 @@ export default class Cedict {
               }
               // Even if permanent storage is disabled we will still populate in order to avoid downloading data again
               return this._populatePermanentStorage(meta, dictionary)
-                .then(() => {
-                  console.info('PopulatePermanentStorage succeeded')
-                  return Promise.resolve()
-                })
+                .then(() => Promise.resolve())
                 .catch((error) => {
-                  console.info('PopulatePermanentStorage failed')
                   console.error('Unable to store CEDICT data to IndexedDB.', error)
                   // Cannot write CEDICT data to IndexedDB. Will fall back to an in-memory location
                   if (!this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
@@ -157,7 +153,6 @@ export default class Cedict {
             })
         })
         .then(() => {
-          console.info('Setting a ready state')
           this.isReady = true
           resolve()
         })
@@ -350,10 +345,10 @@ export default class Cedict {
    *          if data was loaded successfully or that will be rejected with an error with data loading will fail.
    */
   _downloadData () {
-    console.info('Need to download data')
     const requests = this._configuration.data.chunks.map(chunk => this._loadJson(`${this._configuration.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
       let meta = chunks[0].metadata // eslint-disable-line prefer-const
+      // CEDICT metadata will be stored within a `cedict` property of an app-wide metadata object
       meta.cedict = chunks[0].cedictMeta
       delete meta.chunkNumber
       return { meta, dictionary: chunks.map(piece => piece.entries).flat() }
@@ -412,12 +407,8 @@ export default class Cedict {
     Only the use of `update` allow to specify an index for the record.
     Update and insert operations are executed one after the other to avoid mutual blocking.
      */
-    console.info('populatePermanentStorage')
-    const metaUpdate = await this._storage.getStore('meta').update([meta, this.cedict.metaKey])
-    console.info('After meta update')
-    const dictionaryUpdate = await this._storage.getStore('dictionary').insert(dictionary)
-    console.info('After dictionary update')
-    // return Promise.all([metaUpdate/*, dictionaryUpdate*/])
+    await this._storage.getStore('meta').update([meta, this.cedict.metaKey])
+    await this._storage.getStore('dictionary').insert(dictionary)
   }
 
   /**
