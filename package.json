@@ -1,6 +1,6 @@
 {
   "name": "lexis-cs",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Lexical services for client side scripts",
   "main": "dist/lexis-cs-test-bundle.js",
   "type": "module",
