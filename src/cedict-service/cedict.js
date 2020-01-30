@@ -331,6 +331,7 @@ export default class Cedict {
     const requests = this._configuration.data.chunks.map(chunk => this._loadJson(`${this._configuration.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
       let meta = chunks[0].metadata // eslint-disable-line prefer-const
+      // CEDICT metadata will be stored within a `cedict` property of an app-wide metadata object
       meta.cedict = chunks[0].cedictMeta
       delete meta.chunkNumber
       return { meta, dictionary: chunks.map(piece => piece.entries).flat() }
