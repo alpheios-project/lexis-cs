@@ -60,13 +60,13 @@ const cedict = {
           volatile storage will place data into RAM and data will be retrieved faster at cost of a higher
           RAM usage.
            */
-          enabled: true,
+          enabled: false,
 
           /*
           If volatile storage is indexed it will create additional in-memory maps to store headword indexes.
           It will result in almost instantaneous retrieval of data at cost of a higher RAM usage.
            */
-          indexed: true
+          indexed: false
         },
         permanentStorage: {
           /*
@@ -84,7 +84,7 @@ const cedict = {
           Please note: even if permanent storage is disabled, it will still be created in order to
           put downloaded data into it and to avoid downloading it again with each service initialization.
            */
-          enabled: false,
+          enabled: true,
 
           /*
           (Currently not implemented.)
@@ -92,7 +92,7 @@ const cedict = {
           On the other hand, having indexes enabled to not increase IndexedDB size significantly.
           Because of that it is recommended to always have this option on.
            */
-          indexed: false
+          indexed: true
         }
       }
     }

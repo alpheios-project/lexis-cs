@@ -101,17 +101,43 @@ export default class Cedict {
   /**
    * Initializes a data object.
    *
-   * @returns {Promise<undefined> | Promise<Error>} - A promise
+   * @returns {Promise<undefined> | Promise<Error>} Returns a promise that is resolved with undefined
+   *          if initialization succeeded or is rejected with an error object if initialization failed.
    */
-  init () {
+  async init () {
+    let indexedDbSupported = true
+    try {
+      // Try to establish connection to an IndexedDB
+      await this._storage.connect()
+    } catch (error) {
+      if (error.name === Cedict.errNames.SECURITY_ERR) {
+        /*
+        Security error indicates that IndexedDB is not available in the current environment.
+        This can be a case of a cross origin use of IndexedDB in Safari.
+         */
+        indexedDbSupported = false
+        console.warn('LexisCS will disable IndexedDB because it is not supported in the current environment')
+      } else {
+        throw error
+      }
+    }
+    return indexedDbSupported ? this._initWithIndexedDb() : this._initWithoutIndexedDb()
+  }
+
+  /**
+   * This initialization method is called when IndexedDB is available, i.e. in majority of cases.
+   *
+   * @returns {Promise<undefined> | Promise<Error>} Returns a promise that is resolved with undefined
+   *          if initialization succeeded or is rejected with an error object if initialization failed.
+   * @private
+   */
+  _initWithIndexedDb () {
+    /*
+    This method is called when a caller has already establish a connection to the store successfully
+    `storage.connect()` will create a database if it does not exist yet.
+     */
     return new Promise((resolve, reject) => {
-      // `storage.connect()` will create a database if it does not exist yet.
-      return this._storage.connect()
-        .catch((error) => {
-          console.error('Connection to storage cannot be established')
-          reject(error)
-        })
-        .then(() => this._storage.getIntegrityData())
+      return this._storage.getIntegrityData()
         .then((integrityData) => {
           /*
           Integrity data has been returned successfully which means database structure is OK.
@@ -130,7 +156,7 @@ export default class Cedict {
         .catch(() => {
           // Data in permanent storage needs to be updated
           return this.removePermanentData()
-          // `connect()` will create storage and stores
+            // `connect()` will create storage and stores
             .then(() => this._storage.connect())
             .then(() => this._downloadData())
             .then(({ meta, dictionary }) => {
@@ -160,21 +186,29 @@ export default class Cedict {
     })
   }
 
-  initSafari () {
-    return new Promise((resolve, reject) => {
-      this._downloadData()
-        .then(({ meta, dictionary }) => {
-          if (this._configuration.storage.stores.dictionary.volatileStorage.enabled) {
-            this._populateVolatileStorage(meta, dictionary)
-          }
-        })
-        .then(() => {
-          console.info('Setting a ready state')
-          this.isReady = true
-          resolve()
-        })
-        .catch((error) => { reject(error) })
-    })
+  /**
+   * This initialization method is for situations when IndexedDB is not available.
+   * This can happen in, for example, Safari, which does not allow to access
+   * cross domain IndexedDBs from within an iframe.
+   * In that case we will rely on in-memory placement only.
+   *
+   * @returns {Promise<void>|Promise<Error|*>} Promise that is resolved with undefined if initialization
+   *          succeeded or is rejected with an error object if initialization fails.
+   * @private
+   */
+  async _initWithoutIndexedDb () {
+    const { meta, dictionary } = await this._downloadData()
+    /*
+    This init method is called when IndexedDB is not available.
+    Because of this, we will force disable an IndexedDB permanent storage in a configuration.
+    We will also force enable an indexed version of a volatile storage,
+    that will be the only storage we will use in that case.
+     */
+    this._configuration.storage.stores.dictionary.permanentStorage.enabled = false
+    this._configuration.storage.stores.dictionary.volatileStorage.enabled = true
+    this._configuration.storage.stores.dictionary.volatileStorage.indexed = true
+    await this._populateVolatileStorage(meta, dictionary)
+    this.isReady = true
   }
 
   /**
@@ -457,4 +491,11 @@ Cedict.errMsgs = {
   CONF_NO_DATA_CHUNKS: 'Data chunks are missing from a configuration',
   NOT_READY: 'CEDICT data is not ready',
   BAD_CHAR_FORM: 'Unknown character form'
+}
+
+/*
+Names of errors that can be thrown during operations
+ */
+Cedict.errNames = {
+  SECURITY_ERR: 'SecurityError'
 }
