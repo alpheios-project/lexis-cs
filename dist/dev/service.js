@@ -780,7 +780,7 @@ class Cedict {
     const requests = this._configuration.data.chunks.map(chunk => this._loadJson(`${this._configuration.data.URI}/${chunk}`))
     return Promise.all(requests).then(chunks => {
       let meta = chunks[0].metadata // eslint-disable-line prefer-const
-      // CEDICT metadata will be stored within a `cedict` property of an app-wide metadata object.
+      // CEDICT metadata will be stored within a `cedict` property of an app-wide metadata object
       meta.cedict = chunks[0].cedictMeta
       delete meta.chunkNumber
       return { meta, dictionary: chunks.map(piece => piece.entries).flat() }
@@ -1252,6 +1252,8 @@ const CedictCharacterForms = _lexisCs_cedict_service_cedict_js__WEBPACK_IMPORTED
 
 const messagingServiceName = 'CedictRequestListener'
 
+console.info('service.js file is loaded')
+
 /**
  * This is a configuration of a WindowsIframeDestination that can be used to connect to CEDICT client service.
  *
@@ -1319,6 +1321,7 @@ const messageHandler = (request, responseFn) => {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.info('Adding a DOMContentLoaded listener')
   const service = new _lexisCs_messaging_messaging_service_js__WEBPACK_IMPORTED_MODULE_0__["default"](messagingServiceName, new _lexisCs_messaging_destinations_window_iframe_destination_js__WEBPACK_IMPORTED_MODULE_2__["default"](CedictDestinationConfig))
   service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
 
