@@ -1,8 +1,5 @@
-import { CedictDestinationConfig } from '@lexisCs/configurations/destinations.js'
+import { MessagingService, ResponseMessage, WindowIframeDestination as Destination, CedictDestinationConfig } from 'alpheios-messaging'
 import { CedictCharacterForms } from '@lexisCs/cedict-service/constants.js'
-import MessagingService from '@lexisCs/messaging/messaging-service.js'
-import ResponseMessage from '@lexisCs/messaging/messages/response-message.js'
-import Destination from '@lexisCs/messaging/destinations/window-iframe-destination.js'
 import Cedict from '@lexisCs/cedict-service/cedict.js'
 import CedictConfig from '@lexisCs/configurations/cedict.js'
 

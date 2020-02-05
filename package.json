@@ -1,15 +1,13 @@
 {
   "name": "lexis-cs",
-  "version": "1.1.1",
+  "version": "1.2.0-dev.0",
   "description": "Lexical services for client side scripts",
-  "main": "dist/lexis-cs-test-bundle.js",
-  "type": "module",
-  "module": "index.js",
+  "main": "dist/dev/service.js",
   "scripts": {
     "test": "jest --coverage",
-    "build-service-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config-service.mjs",
-    "build-service-dev": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config-service.mjs",
-    "build-lexis-test": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config-test.mjs",
+    "build": "npm run build-dev && npm run build-prod",
+    "build-prod": "npm run lint && node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack production lib config.mjs",
+    "build-dev": "node --experimental-modules ./node_modules/alpheios-node-build/dist/build.mjs webpack development lib config.mjs",
     "lint": "eslint --fix ./src/**/*.js",
     "lint-nofix": "eslint ./src/**/*.js"
   },
@@ -75,6 +73,7 @@
     "@babel/core": "^7.8.3",
     "@babel/runtime": "^7.8.3",
     "alpheios-fixtures": "github:alpheios-project/fixtures",
+    "alpheios-messaging": "github:alpheios-project/alpheios-messaging#mss-service-split",
     "alpheios-node-build": "github:alpheios-project/node-build",
     "babel-eslint": "^10.0.3",
     "babel-jest": "^24.9.0",
@@ -88,7 +87,7 @@
     "eslint-plugin-vue": "^6.1.2",
     "eslint-scope": "^5.0.0",
     "fake-indexeddb": "^3.0.0",
-    "jest": "^24.9.0",
+    "jest": "^25.1.0",
     "webpack": "^4.41.5"
   },
   "dependencies": {}

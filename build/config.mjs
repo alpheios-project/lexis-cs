@@ -6,7 +6,8 @@ const webpack = {
     entry: './src/cedict-service/service.js',
     resolve: {
       alias: {
-        '@lexisCs': path.join(projectRoot, 'src')
+        '@lexisCs': path.join(projectRoot, 'src'),
+        '@messServ': path.join(projectRoot, 'node_modules/alpheios-messaging/src')
       }
     }
   },
