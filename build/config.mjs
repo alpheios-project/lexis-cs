@@ -7,7 +7,8 @@ const webpack = {
     resolve: {
       alias: {
         '@lexisCs': path.join(projectRoot, 'src'),
-        '@messServ': path.join(projectRoot, 'node_modules/alpheios-messaging/src')
+        '@messServ': path.join(projectRoot, 'node_modules/alpheios-messaging/src'),
+        'alpheios-messaging': path.join(projectRoot, 'node_modules/alpheios-messaging/dist/dev/alpheios-messaging.js')
       }
     }
   },
@@ -21,7 +22,7 @@ const webpack = {
   development: {
     output: {
       path: path.join(projectRoot, 'dist/dev/'),
-      filename: 'service.js'
+      filename: 'service.dev.js'
     }
   }
 }

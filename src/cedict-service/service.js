@@ -10,7 +10,8 @@ let cedictData
 NOTE: The request/response format described below is temporary and will change in phase three.
 After discussion we decided to add more flexibility for the client in specifying what data it wants to get back.
 
-CEDICT service receive request in the following format:
+CEDICT service supports the following requests:
+getWords:
 {
   getWords: {
     words: words,
@@ -40,39 +41,60 @@ If no matches are found an empty object will be returned:
 
 NOTE: fixtures/src/cedict/cedict-fixture.js implements a stub for `getWords` request of CEDICT service.
       If signature and/or business logic of this request is changed, please update the stub accordingly.
+
+loadData:
+{
+  loadData: {}
+}
+This request starts an initialization of a CEDICT service.
+If service was initialized successfully, an empty success response is returned.
+An error request is returned if initialization failed.
  */
 
-const messageHandler = (request, responseFn) => {
-  if (!cedictData.isReady) {
-    responseFn(ResponseMessage.Error(request, new Error('Uninitialized')))
-    return
-  }
+const messageHandler = async (request, responseFn) => {
+  if (request.body.loadData) {
+    if (!cedictData.isReady) {
+      try {
+        await cedictData.init()
+        // TODO: A message to ease manual testing. We will probably want to remove it later
+        console.log('CEDICT service is ready')
+        responseFn(ResponseMessage.Success(request, {}))
+      } catch (err) {
+        console.error(`Cannot initialize a CEDICT service: ${err.message}`)
+        responseFn(ResponseMessage.Error(request, new Error('Initialization error'), ResponseMessage.errorCodes.INITIALIZATION_ERROR))
+      }
+    } else {
+      // Service has already been initialized, return an empty success message
+      responseFn(ResponseMessage.Success(request, {}))
+    }
+  } else if (request.body.getWords) {
+    if (!cedictData.isReady) {
+      responseFn(ResponseMessage.Error(request, new Error('Uninitialized'), ResponseMessage.errorCodes.SERVICE_UNINITIALIZED))
+      return
+    }
 
-  if (request.body.getWords) {
     // This is a get words request
     cedictData.getWords(request.body.getWords.words, request.body.getWords.characterForm)
       .then((result) => {
         responseFn(ResponseMessage.Success(request, result))
-      }).catch((error) => responseFn(ResponseMessage.Error(request, error)))
+      }).catch((error) => responseFn(ResponseMessage.Error(request, error, ResponseMessage.errorCodes.INTERNAL_ERROR)))
   } else {
-    responseFn(ResponseMessage.Error(request, new Error('Unsupported request')))
+    responseFn(ResponseMessage.Error(request, new Error('Unsupported request'), ResponseMessage.errorCodes.UNKNOWN_REQUEST))
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const service = new MessagingService(messagingServiceName, new Destination(CedictDestinationConfig))
-  service.registerReceiverCallback(CedictDestinationConfig.name, messageHandler)
+  // eslint-disable-next-line no-unused-vars
+  const service = new MessagingService(
+    messagingServiceName,
+    new Destination({ ...CedictDestinationConfig, commModes: [Destination.commModes.RECEIVE], receiverCB: messageHandler })
+  )
 
   try {
     cedictData = new Cedict(CedictConfig)
   } catch (error) {
     console.error(error)
-    return
   }
-  cedictData.init().then(() => {
-    // TODO: A message to ease manual testing. Shall be removed in production
-    console.log('CEDICT service is ready')
-  }).catch((error) => console.error(`Cannot initialize CEDICT service: ${error.message}`))
 })
 
 export { CedictDestinationConfig, CedictCharacterForms }
