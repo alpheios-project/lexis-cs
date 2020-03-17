@@ -387,6 +387,7 @@ const CedictDestinationDevConfig = {
   targetIframeID: 'alpheios-lexis-cs'
 }
 
+
 /***/ }),
 
 /***/ "./src/core/messaging-service.js":
@@ -601,29 +602,6 @@ class MessagingService {
     const promise = this.registerRequest(request, timeout)
     this._destinations.get(destName).sendRequest(request)
     return promise
-  }
-
-  /**
-   * Sets a function to be called on a destination side every time a message from the origin arrives.
-   *
-   * @param {string} destName - A name of a destination to listen to messages from.
-   * @param {Function} callbackFn - A function to call when message is arrived. A message will be passed
-   *                                to this function as an argument.
-   */
-  registerReceiverCallback (destName, callbackFn) {
-    if (!destName) {
-      throw new Error('No destination name provided')
-    }
-
-    if (!this._destinations.has(destName)) {
-      throw new Error(`Unknown destination ${destName}`)
-    }
-
-    let destination = this._destinations.get(destName) // eslint-disable-line prefer-const
-    if (!destination.ableToReceive) {
-      throw new Error('Destination is not configured to receive messages')
-    }
-    destination.registerReceiverCallback(callbackFn)
   }
 }
 
