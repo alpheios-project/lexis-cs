@@ -126,6 +126,26 @@ export default class Cedict {
   }
 
   /**
+   * Checks if there is a valid CEDICT data stored in an IndexedDB
+   *
+   * @returns {Promise<boolean>} - A promise that is resolved with `true` if there is valid data
+   *          or the promise resolved with `false` if data is incomplete, broken, or missing.
+   */
+  async hasDataLoaded () {
+    let result
+    try {
+      await this._storage.connect()
+      const integrityData = await this._storage.getIntegrityData()
+      result = this.isStorageIntact(integrityData)
+    } catch (error) {
+      result = false
+    } finally {
+      await this._storage.disconnect()
+    }
+    return result
+  }
+
+  /**
    * This initialization method is called when IndexedDB is available, i.e. in majority of cases.
    *
    * @returns {Promise<undefined> | Promise<Error>} Returns a promise that is resolved with undefined

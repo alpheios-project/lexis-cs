@@ -1325,14 +1325,16 @@ Destination.commModes = {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return WindowIframeDestination; });
-/* harmony import */ var _messServ_destinations_destination_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @messServ/destinations/destination.js */ "./src/destinations/destination.js");
+/* harmony import */ var _messServ_messages_message_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! @messServ/messages/message.js */ "./src/messages/message.js");
+/* harmony import */ var _messServ_destinations_destination_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @messServ/destinations/destination.js */ "./src/destinations/destination.js");
 /**
  * @module WindowIframeDestination
  */
 
 
+
 /** WindowIframeDestination represents a content window within an iframe */
-class WindowIframeDestination extends _messServ_destinations_destination_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class WindowIframeDestination extends _messServ_destinations_destination_js__WEBPACK_IMPORTED_MODULE_1__["default"] {
   /**
    * @param {object} [configuration={}] - An object containing configuration parameters.
    * @param {string} configuration.name - A name of a destination (for addressing a destination in a messaging service).
@@ -1432,7 +1434,26 @@ class WindowIframeDestination extends _messServ_destinations_destination_js__WEB
       // If we can access a target iframe location and its URL is blank it means an iframe content is not loaded yet.
       throw new Error(`Target document ${this._targetURL} is not loaded yet`)
     }
-    iframeWindow.postMessage(requestMessage, this._targetURL)
+    try {
+      iframeWindow.postMessage(requestMessage, this._targetURL)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'DataCloneError') {
+        /*
+        A message body does not confirm the structured clone algorithm and thus cannot be send via `postMessage`.
+        See https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
+        for more details.
+        We'll try to convert it to a plain object.
+         */
+        console.warn('Request that does not confirm to the structured clone algorithm cannot be sent, ' +
+          'will try to convert it to a plain object and send again')
+        requestMessage.body = WindowIframeDestination._toPostable(requestMessage.body)
+        // Try to resend a message
+        iframeWindow.postMessage(requestMessage, this._targetURL)
+      } else {
+        // Some other error occurred, rethrow it
+        throw err
+      }
+    }
   }
 
   /**
@@ -1441,7 +1462,26 @@ class WindowIframeDestination extends _messServ_destinations_destination_js__WEB
    * @param {ResponseMessage} responseMessage - A response message object.
    */
   sendResponse (responseMessage) {
-    window.parent.postMessage(responseMessage, responseMessage.requestHeader.origin)
+    try {
+      window.parent.postMessage(responseMessage, responseMessage.requestHeader.origin)
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'DataCloneError') {
+        /*
+        A message body does not confirm the structured clone algorithm and thus cannot be send via `postMessage`.
+        See https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
+        for more details.
+        We'll try to convert it to a plain object.
+         */
+        console.warn('Response that does not confirm to the structured clone algorithm cannot be sent, ' +
+                     'will try to convert it to a plain object and send again')
+        responseMessage.body = WindowIframeDestination._toPostable(responseMessage.body)
+        // Try to resend a message
+        window.parent.postMessage(responseMessage, responseMessage.requestHeader.origin)
+      } else {
+        // Some other error occurred, rethrow it
+        throw err
+      }
+    }
   }
 
   /**
@@ -1453,6 +1493,9 @@ class WindowIframeDestination extends _messServ_destinations_destination_js__WEB
    * @private
    */
   _requestHandler (callbackFn, event) {
+    // Check if an event contains a valid Alpheios message object.
+    if (!WindowIframeDestination._isSupportedEvent(event)) { return }
+
     // `data` prop of an event contains a request message object
     let request = event.data // eslint-disable-line prefer-const
     request.header.origin = event.origin
@@ -1466,18 +1509,25 @@ class WindowIframeDestination extends _messServ_destinations_destination_js__WEB
    * @private
    */
   _responseHandler (event) {
-    if (!event.data || !event.data.type) {
-      /*
-      Event does not have a data prop that contains a message object. We cannot handle such events and will ignore theml
-      */
-      return
-    }
+    // Check if an event contains a valid Alpheios message object.
+    if (!WindowIframeDestination._isSupportedEvent(event)) { return }
 
     // `data` prop of an event contains a response message object
     const responseMessage = event.data
     if (this._responseCallback) {
       this._responseCallback(responseMessage)
     }
+  }
+
+  /**
+   * Checks whether an event contains a well-formed Alpheios message object.
+   *
+   * @param {Event} event - An event that may contain a message object in a `data` field.
+   * @returns {boolean} - True if an event contains a well-formed Alpheios message object, false otherwise.
+   * @private
+   */
+  static _isSupportedEvent (event) {
+    return Boolean(event && event.data && event.data.type && _messServ_messages_message_js__WEBPACK_IMPORTED_MODULE_0__["default"].isKnownType(event.data.type))
   }
 
   /**
@@ -1494,6 +1544,33 @@ class WindowIframeDestination extends _messServ_destinations_destination_js__WEB
       window.removeEventListener('message', this._registeredRequestHandler, false)
       this._registeredRequestHandler = null
     }
+  }
+
+  /**
+   * Converts an object to the one that is conforms the structured clone algorithm.
+   * See https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
+   * for more details.
+   *
+   * @param {object} message - An object to convert.
+   * @returns {object} - An object that conforms to the structured clone algorithm.
+   * @private
+   */
+  static _toPostable (message) {
+    let postable
+    if (message instanceof Error) {
+      /*
+      Due to the bug in FF, Errors cannot be sent via postMessage yet.
+      Please see https://bugzilla.mozilla.org/show_bug.cgi?id=1556604 for more details.
+      This code can be removed once the bug is fixed.
+       */
+      postable = {
+        name: message.name,
+        message: message.message
+      }
+    } else {
+      postable = JSON.parse(JSON.stringify(message))
+    }
+    return postable
   }
 }
 
@@ -2100,6 +2177,26 @@ class Cedict {
       }
     }
     return indexedDbSupported ? this._initWithIndexedDb() : this._initWithoutIndexedDb()
+  }
+
+  /**
+   * Checks if there is a valid CEDICT data stored in an IndexedDB
+   *
+   * @returns {Promise<boolean>} - A promise that is resolved with `true` if there is valid data
+   *          or the promise resolved with `false` if data is incomplete, broken, or missing.
+   */
+  async hasDataLoaded () {
+    let result
+    try {
+      await this._storage.connect()
+      const integrityData = await this._storage.getIntegrityData()
+      result = this.isStorageIntact(integrityData)
+    } catch (error) {
+      result = false
+    } finally {
+      await this._storage.disconnect()
+    }
+    return result
   }
 
   /**
@@ -2917,6 +3014,19 @@ const messageHandler = async (request, responseFn) => {
     }
   } else if (request.body.getWords) {
     if (!cedictData.isReady) {
+      // If data is loaded to IndexedDB already, we can initialize CEDICT fast and respond to the current request
+      try {
+        const hasData = await cedictData.hasDataLoaded()
+        if (hasData) {
+          await cedictData.init()
+        }
+      } catch (error) {
+        // Data is not valid or IndexedDB is unavailable. Cannot initialize CEDICT without downloading of data
+      }
+    }
+
+    if (!cedictData.isReady) {
+      // Data is not loaded or is invalid; send an uninitialized response to the client
       responseFn(alpheios_messaging__WEBPACK_IMPORTED_MODULE_0__["ResponseMessage"].Error(request, new Error('Uninitialized'), alpheios_messaging__WEBPACK_IMPORTED_MODULE_0__["ResponseMessage"].errorCodes.SERVICE_UNINITIALIZED))
       return
     }

@@ -69,6 +69,19 @@ const messageHandler = async (request, responseFn) => {
     }
   } else if (request.body.getWords) {
     if (!cedictData.isReady) {
+      // If data is loaded to IndexedDB already, we can initialize CEDICT fast and respond to the current request
+      try {
+        const hasData = await cedictData.hasDataLoaded()
+        if (hasData) {
+          await cedictData.init()
+        }
+      } catch (error) {
+        // Data is not valid or IndexedDB is unavailable. Cannot initialize CEDICT without downloading of data
+      }
+    }
+
+    if (!cedictData.isReady) {
+      // Data is not loaded or is invalid; send an uninitialized response to the client
       responseFn(ResponseMessage.Error(request, new Error('Uninitialized'), ResponseMessage.errorCodes.SERVICE_UNINITIALIZED))
       return
     }
