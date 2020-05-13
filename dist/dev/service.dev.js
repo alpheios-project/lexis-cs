@@ -3485,7 +3485,7 @@ const cedict = {
     /*
     A URI where chunks of CEDICT data are located.
      */
-    URI: 'https://lexis-dev.alpheios.net/cedict',
+    URI: 'https://lexis-cs.alpheios.net/cedict',
 
     /*
     Names of the chunks themselves.
