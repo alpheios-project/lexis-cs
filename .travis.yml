@@ -14,7 +14,7 @@ deploy:
     cache_control: "no-cache"
     on:
       repo: alpheios-project/lexis-cs
-      branch: master
+      branch: production
   - provider: s3
     access_key_id: AKIAZIUCQ6FCHKXGRX4Y
     secret_access_key:
